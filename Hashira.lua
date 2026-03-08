@@ -1,9 +1,6 @@
---[[ NEBULA HUB V6 - DEFINITIVE EDITION (FIXED) ]]--
+-- [[ NEBULA HUB V6 - DEFINITIVE EDITION ]] --
 
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-
+if not game:IsLoaded() then game.Loaded:Wait() end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
@@ -21,15 +18,12 @@ local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 
--- VARIÁVEIS
 local Vars = {
-    Aimbot = false,
-    Smoothness = 0.2,
-    Fov = 100,
     EspBox = false,
     Ws = 16,
     Jp = 50,
-    FullBright = false
+    InfJump = false,
+    NoClip = false
 }
 
 --------------------------------------------------
@@ -56,49 +50,13 @@ local function CreateTPTool()
 end
 
 --------------------------------------------------
--- AIMBOT TARGET
---------------------------------------------------
-
-local function GetClosest()
-
-    local target = nil
-    local dist = Vars.Fov
-
-    for _,p in pairs(Players:GetPlayers()) do
-
-        if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-
-            local hum = p.Character:FindFirstChildOfClass("Humanoid")
-
-            if hum and hum.Health > 0 then
-
-                local pos,screen = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
-
-                if screen then
-
-                    local mag = (Vector2.new(pos.X,pos.Y) -
-                    Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)).Magnitude
-
-                    if mag < dist then
-                        target = p.Character.HumanoidRootPart
-                        dist = mag
-                    end
-
-                end
-            end
-        end
-    end
-
-    return target
-end
-
---------------------------------------------------
--- ESP SYSTEM
+-- ESP MELHORADO
 --------------------------------------------------
 
 local function CreateESP(p)
 
     local box = Drawing.new("Square")
+    local outline = Drawing.new("Square")
     local healthBar = Drawing.new("Line")
     local info = Drawing.new("Text")
 
@@ -111,9 +69,9 @@ local function CreateESP(p)
 
             if hum and hum.Health > 0 then
 
-                local pos,screen = Camera:WorldToViewportPoint(root.Position)
+                local pos, visible = Camera:WorldToViewportPoint(root.Position)
 
-                if screen then
+                if visible then
 
                     local sizeX = 2000 / pos.Z
                     local sizeY = 3000 / pos.Z
@@ -121,30 +79,53 @@ local function CreateESP(p)
                     local x = pos.X - sizeX/2
                     local y = pos.Y - sizeY/2
 
+                    -- Outline
+                    outline.Visible = true
+                    outline.Size = Vector2.new(sizeX+2,sizeY+2)
+                    outline.Position = Vector2.new(x-1,y-1)
+                    outline.Color = Color3.new(0,0,0)
+                    outline.Thickness = 3
+                    outline.Filled = false
+
+                    -- Box
                     box.Visible = true
                     box.Size = Vector2.new(sizeX,sizeY)
                     box.Position = Vector2.new(x,y)
-                    box.Color = Color3.new(1,1,1)
-                    box.Thickness = 1
+                    box.Color = Color3.fromRGB(0,255,120)
+                    box.Thickness = 2
+                    box.Filled = false
 
+                    -- Health bar
                     healthBar.Visible = true
-                    healthBar.Color = Color3.fromRGB(0,255,0)
-                    healthBar.Thickness = 2
-                    healthBar.From = Vector2.new(x-5,y+sizeY)
-                    healthBar.To = Vector2.new(x-5,y+sizeY-(sizeY*(hum.Health/hum.MaxHealth)))
+                    healthBar.Thickness = 3
 
-                    local dist = math.floor((LP.Character.HumanoidRootPart.Position-root.Position).Magnitude)
+                    local hpPercent = hum.Health / hum.MaxHealth
+
+                    local r = 255 - (hpPercent * 255)
+                    local g = hpPercent * 255
+
+                    healthBar.Color = Color3.fromRGB(r,g,0)
+
+                    healthBar.From = Vector2.new(x-6,y+sizeY)
+                    healthBar.To = Vector2.new(x-6,y+sizeY-(sizeY*hpPercent))
+
+                    -- Info
+                    local dist = math.floor(
+                        (LP.Character.HumanoidRootPart.Position - root.Position).Magnitude
+                    )
 
                     info.Visible = true
-                    info.Text = p.Name.." ["..dist.."m]"
-                    info.Size = 14
                     info.Center = true
                     info.Outline = true
-                    info.Position = Vector2.new(pos.X,y+sizeY+5)
+                    info.Size = 14
+                    info.Color = Color3.fromRGB(255,255,255)
+                    info.Text = p.Name.." | "..dist.."m"
+                    info.Position = Vector2.new(pos.X,y-15)
 
                 else
 
                     box.Visible = false
+                    outline.Visible = false
                     healthBar.Visible = false
                     info.Visible = false
 
@@ -153,6 +134,7 @@ local function CreateESP(p)
         else
 
             box.Visible = false
+            outline.Visible = false
             healthBar.Visible = false
             info.Visible = false
 
@@ -166,21 +148,10 @@ end
 
 local TabCombat = Window:CreateTab("Combat")
 
-TabCombat:CreateToggle({
-    Name = "Aimbot (Mira Suave)",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.Aimbot = v
-    end
-})
-
-TabCombat:CreateSlider({
-    Name = "Suavidade",
-    Range = {0,1},
-    Increment = 0.1,
-    CurrentValue = 0.2,
-    Callback = function(v)
-        Vars.Smoothness = v
+TabCombat:CreateButton({
+    Name = "Universal Aimbot",
+    Callback = function()
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-universal-111551"))()
     end
 })
 
@@ -189,25 +160,29 @@ TabCombat:CreateSlider({
 local TabVisuals = Window:CreateTab("Visuals")
 
 TabVisuals:CreateToggle({
-    Name = "ESP Box",
+    Name = "ESP Box Melhorado",
     CurrentValue = false,
     Callback = function(v)
         Vars.EspBox = v
     end
 })
 
-TabVisuals:CreateToggle({
-    Name = "Full Bright",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.FullBright = v
+TabVisuals:CreateButton({
+    Name = "ESP Universal (Externo)",
+    Callback = function()
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Esp-universal-49905"))()
     end
 })
 
 TabVisuals:CreateButton({
-    Name = "ESP Universal (Avançado)",
+    Name = "FullBright",
     Callback = function()
-        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Esp-universal-49905"))()
+
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.GlobalShadows = false
+        Lighting.OutdoorAmbient = Color3.new(1,1,1)
+
     end
 })
 
@@ -216,14 +191,7 @@ TabVisuals:CreateButton({
 local TabUtil = Window:CreateTab("Utility")
 
 TabUtil:CreateButton({
-    Name = "Ativar Fly GUI",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
-    end
-})
-
-TabUtil:CreateButton({
-    Name = "Pegar Item de Teleporte",
+    Name = "Teleport Tool",
     Callback = function()
         CreateTPTool()
     end
@@ -249,6 +217,22 @@ TabUtil:CreateSlider({
     end
 })
 
+TabUtil:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.InfJump = v
+    end
+})
+
+TabUtil:CreateToggle({
+    Name = "NoClip",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.NoClip = v
+    end
+})
+
 TabUtil:CreateButton({
     Name = "Infinite Yield",
     Callback = function()
@@ -257,23 +241,11 @@ TabUtil:CreateButton({
 })
 
 --------------------------------------------------
--- LOOP PRINCIPAL
+-- LOOP
 --------------------------------------------------
 
 RS.RenderStepped:Connect(function()
 
-    -- AIMBOT
-    if Vars.Aimbot then
-
-        local target = GetClosest()
-
-        if target then
-            local targetCF = CFrame.new(Camera.CFrame.Position,target.Position)
-            Camera.CFrame = Camera.CFrame:Lerp(targetCF,Vars.Smoothness)
-        end
-    end
-
-    -- PLAYER STATS
     if LP.Character and LP.Character:FindFirstChild("Humanoid") then
 
         LP.Character.Humanoid.WalkSpeed = Vars.Ws
@@ -281,19 +253,11 @@ RS.RenderStepped:Connect(function()
 
     end
 
-    -- FULL BRIGHT
-    if Vars.FullBright then
+    if Vars.NoClip and LP.Character then
 
-        Lighting.Brightness = 3
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 100000
-        Lighting.GlobalShadows = false
-        Lighting.Ambient = Color3.new(1,1,1)
-        Lighting.OutdoorAmbient = Color3.new(1,1,1)
-
-        for _,v in pairs(Lighting:GetChildren()) do
-            if v:IsA("Atmosphere") then
-                v.Density = 0
+        for _,v in pairs(LP.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
             end
         end
 
@@ -302,7 +266,23 @@ RS.RenderStepped:Connect(function()
 end)
 
 --------------------------------------------------
--- INICIALIZAR ESP
+-- INFINITE JUMP
+--------------------------------------------------
+
+UIS.JumpRequest:Connect(function()
+
+    if Vars.InfJump then
+
+        if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+            LP.Character.Humanoid:ChangeState("Jumping")
+        end
+
+    end
+
+end)
+
+--------------------------------------------------
+-- ESP INIT
 --------------------------------------------------
 
 for _,p in pairs(Players:GetPlayers()) do
@@ -310,6 +290,20 @@ for _,p in pairs(Players:GetPlayers()) do
 end
 
 Players.PlayerAdded:Connect(CreateESP)
+
+--------------------------------------------------
+-- ANTI AFK
+--------------------------------------------------
+
+LP.Idled:Connect(function()
+
+    local vu = game:GetService("VirtualUser")
+
+    vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+
+end)
 
 Rayfield:Notify({
     Title = "Nebula Hub V6",
