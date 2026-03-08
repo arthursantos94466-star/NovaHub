@@ -1,6 +1,6 @@
 -- [[ OTIMIZAÇÃO DE INICIALIZAÇÃO ]] --
 if not game:IsLoaded() then game.Loaded:Wait() end
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu"))()
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Nebula Hub | V6 Final",
