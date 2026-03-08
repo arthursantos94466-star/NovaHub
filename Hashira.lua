@@ -1,312 +1,281 @@
--- [[ NEBULA HUB V6 - DEFINITIVE EDITION ]] --
+--[[
+    Hashiras Hub - Beta
+]]
 
-if not game:IsLoaded() then game.Loaded:Wait() end
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local UIS = game:GetService("UserInputService")
+
+local LP = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+---------------------------------------------------
+-- VARIÁVEIS DE ESTADO
+---------------------------------------------------
+
+local Vars = {
+    KillAura = false,
+    Hitbox = false,
+    InfiniteJump = false,
+    Noclip = false,
+    Float = false,
+    ESPEnabled = false,
+    RadarEnabled = false,
+    SavedPosition = nil,
+    WalkSpeed = 16,
+    JumpPower = 50
+}
+
+---------------------------------------------------
+-- FUNÇÕES AUXILIARES
+---------------------------------------------------
+
+local function GetCharacter() return LP.Character end
+
+local function GetRoot() 
+    local char = GetCharacter()
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function GetHumanoid()
+    local char = GetCharacter()
+    return char and char:FindFirstChild("Humanoid")
+end
+
+---------------------------------------------------
+-- UI SETUP
+---------------------------------------------------
+
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Nebula Hub | V6 FINAL",
-    LoadingTitle = "Carregando Sistemas...",
-    LoadingSubtitle = "ESP Style & Touch TP",
+    Name = "Nebula Hub Reworked",
+    LoadingTitle = "Nebula Hub",
+    LoadingSubtitle = "Stable Edition",
     ConfigurationSaving = {Enabled = false}
 })
 
--- SERVIÇOS
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local RS = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
+-- Abas
+local Combat = Window:CreateTab("Combat")
+local Movement = Window:CreateTab("Movement")
+local Visuals = Window:CreateTab("Visuals")
+local PlayerTab = Window:CreateTab("Player")
+local ServerTab = Window:CreateTab("Server")
 
-local Vars = {
-    EspBox = false,
-    Ws = 16,
-    Jp = 50,
-    InfJump = false,
-    NoClip = false
-}
+---------------------------------------------------
+-- COMBAT
+---------------------------------------------------
 
---------------------------------------------------
--- TELEPORT TOOL
---------------------------------------------------
-
-local function CreateTPTool()
-
-    local tool = Instance.new("Tool")
-    tool.Name = "Teleport Tool"
-    tool.RequiresHandle = false
-    tool.Parent = LP.Backpack
-
-    tool.Activated:Connect(function()
-
-        local mouse = LP:GetMouse()
-
-        if mouse.Target and LP.Character then
-            LP.Character:MoveTo(mouse.Hit.p)
-        end
-
-    end)
-
-end
-
---------------------------------------------------
--- ESP MELHORADO
---------------------------------------------------
-
-local function CreateESP(p)
-
-    local box = Drawing.new("Square")
-    local outline = Drawing.new("Square")
-    local healthBar = Drawing.new("Line")
-    local info = Drawing.new("Text")
-
-    RS.RenderStepped:Connect(function()
-
-        if Vars.EspBox and p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-
-            local root = p.Character.HumanoidRootPart
-            local hum = p.Character:FindFirstChildOfClass("Humanoid")
-
-            if hum and hum.Health > 0 then
-
-                local pos, visible = Camera:WorldToViewportPoint(root.Position)
-
-                if visible then
-
-                    local sizeX = 2000 / pos.Z
-                    local sizeY = 3000 / pos.Z
-
-                    local x = pos.X - sizeX/2
-                    local y = pos.Y - sizeY/2
-
-                    -- Outline
-                    outline.Visible = true
-                    outline.Size = Vector2.new(sizeX+2,sizeY+2)
-                    outline.Position = Vector2.new(x-1,y-1)
-                    outline.Color = Color3.new(0,0,0)
-                    outline.Thickness = 3
-                    outline.Filled = false
-
-                    -- Box
-                    box.Visible = true
-                    box.Size = Vector2.new(sizeX,sizeY)
-                    box.Position = Vector2.new(x,y)
-                    box.Color = Color3.fromRGB(0,255,120)
-                    box.Thickness = 2
-                    box.Filled = false
-
-                    -- Health bar
-                    healthBar.Visible = true
-                    healthBar.Thickness = 3
-
-                    local hpPercent = hum.Health / hum.MaxHealth
-
-                    local r = 255 - (hpPercent * 255)
-                    local g = hpPercent * 255
-
-                    healthBar.Color = Color3.fromRGB(r,g,0)
-
-                    healthBar.From = Vector2.new(x-6,y+sizeY)
-                    healthBar.To = Vector2.new(x-6,y+sizeY-(sizeY*hpPercent))
-
-                    -- Info
-                    local dist = math.floor(
-                        (LP.Character.HumanoidRootPart.Position - root.Position).Magnitude
-                    )
-
-                    info.Visible = true
-                    info.Center = true
-                    info.Outline = true
-                    info.Size = 14
-                    info.Color = Color3.fromRGB(255,255,255)
-                    info.Text = p.Name.." | "..dist.."m"
-                    info.Position = Vector2.new(pos.X,y-15)
-
-                else
-
-                    box.Visible = false
-                    outline.Visible = false
-                    healthBar.Visible = false
-                    info.Visible = false
-
-                end
-            end
-        else
-
-            box.Visible = false
-            outline.Visible = false
-            healthBar.Visible = false
-            info.Visible = false
-
-        end
-    end)
-end
-
---------------------------------------------------
--- INTERFACE
---------------------------------------------------
-
-local TabCombat = Window:CreateTab("Combat")
-
-TabCombat:CreateButton({
-    Name = "Universal Aimbot",
-    Callback = function()
-        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-universal-111551"))()
-    end
-})
-
---------------------------------------------------
-
-local TabVisuals = Window:CreateTab("Visuals")
-
-TabVisuals:CreateToggle({
-    Name = "ESP Box Melhorado",
+Combat:CreateToggle({
+    Name = "Kill Aura",
     CurrentValue = false,
-    Callback = function(v)
-        Vars.EspBox = v
-    end
+    Callback = function(v) Vars.KillAura = v end
 })
 
-TabVisuals:CreateButton({
-    Name = "ESP Universal (Externo)",
+Combat:CreateToggle({
+    Name = "Hitbox Expander",
+    CurrentValue = false,
+    Callback = function(v) Vars.Hitbox = v end
+})
+
+Combat:CreateButton({
+    Name = "Aim Closest Player",
     Callback = function()
-        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Esp-universal-49905"))()
+        local root = GetRoot()
+        if not root then return end
+        
+        local closest, dist = nil, math.huge
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local d = (root.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                if d < dist then dist = d; closest = p end
+            end
+        end
+        if closest then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest.Character.HumanoidRootPart.Position)
+        end
     end
 })
 
-TabVisuals:CreateButton({
-    Name = "FullBright",
-    Callback = function()
+---------------------------------------------------
+-- MOVEMENT
+---------------------------------------------------
 
-        Lighting.Brightness = 2
-        Lighting.ClockTime = 14
-        Lighting.GlobalShadows = false
-        Lighting.OutdoorAmbient = Color3.new(1,1,1)
-
-    end
-})
-
---------------------------------------------------
-
-local TabUtil = Window:CreateTab("Utility")
-
-TabUtil:CreateButton({
-    Name = "Teleport Tool",
-    Callback = function()
-        CreateTPTool()
-    end
-})
-
-TabUtil:CreateSlider({
+Movement:CreateSlider({
     Name = "WalkSpeed",
-    Range = {16,250},
+    Range = {16, 250},
     Increment = 1,
     CurrentValue = 16,
-    Callback = function(v)
-        Vars.Ws = v
-    end
+    Callback = function(v) Vars.WalkSpeed = v end
 })
 
-TabUtil:CreateSlider({
+Movement:CreateSlider({
     Name = "JumpPower",
-    Range = {50,500},
+    Range = {50, 300},
     Increment = 1,
     CurrentValue = 50,
-    Callback = function(v)
-        Vars.Jp = v
-    end
+    Callback = function(v) Vars.JumpPower = v end
 })
 
-TabUtil:CreateToggle({
+Movement:CreateToggle({
     Name = "Infinite Jump",
     CurrentValue = false,
-    Callback = function(v)
-        Vars.InfJump = v
-    end
+    Callback = function(v) Vars.InfiniteJump = v end
 })
 
-TabUtil:CreateToggle({
+Movement:CreateToggle({
     Name = "NoClip",
     CurrentValue = false,
-    Callback = function(v)
-        Vars.NoClip = v
-    end
+    Callback = function(v) Vars.Noclip = v end
 })
 
-TabUtil:CreateButton({
-    Name = "Infinite Yield",
+Movement:CreateButton({
+    Name = "Anti Void",
     Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+        local root = GetRoot()
+        if root then root.CFrame = CFrame.new(0, 100, 0) end
     end
 })
 
---------------------------------------------------
--- LOOP
---------------------------------------------------
+---------------------------------------------------
+-- VISUALS & RADAR
+---------------------------------------------------
 
-RS.RenderStepped:Connect(function()
-
-    if LP.Character and LP.Character:FindFirstChild("Humanoid") then
-
-        LP.Character.Humanoid.WalkSpeed = Vars.Ws
-        LP.Character.Humanoid.JumpPower = Vars.Jp
-
+Visuals:CreateToggle({
+    Name = "FullBright",
+    CurrentValue = false,
+    Callback = function(v)
+        if v then
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.Brightness = 2
+        else
+            Lighting.Ambient = Color3.fromRGB(127, 127, 127)
+            Lighting.Brightness = 1
+        end
     end
+})
 
-    if Vars.NoClip and LP.Character then
-
-        for _,v in pairs(LP.Character:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = false
+Visuals:CreateToggle({
+    Name = "Player ESP (Highlights)",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.ESPEnabled = v
+        if not v then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Character and p.Character:FindFirstChild("Highlight") then
+                    p.Character.Highlight:Destroy()
+                end
             end
         end
-
     end
-
-end)
-
---------------------------------------------------
--- INFINITE JUMP
---------------------------------------------------
-
-UIS.JumpRequest:Connect(function()
-
-    if Vars.InfJump then
-
-        if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
-            LP.Character.Humanoid:ChangeState("Jumping")
-        end
-
-    end
-
-end)
-
---------------------------------------------------
--- ESP INIT
---------------------------------------------------
-
-for _,p in pairs(Players:GetPlayers()) do
-    CreateESP(p)
-end
-
-Players.PlayerAdded:Connect(CreateESP)
-
---------------------------------------------------
--- ANTI AFK
---------------------------------------------------
-
-LP.Idled:Connect(function()
-
-    local vu = game:GetService("VirtualUser")
-
-    vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-    task.wait(1)
-    vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-
-end)
-
-Rayfield:Notify({
-    Title = "Nebula Hub V6",
-    Content = "Sistemas Prontos!",
-    Duration = 5
 })
+
+-- Radar 2D Simplificado
+local RadarGui = Instance.new("ScreenGui", game.CoreGui)
+local RadarFrame = Instance.new("Frame", RadarGui)
+RadarFrame.Size = UDim2.new(0, 150, 0, 150)
+RadarFrame.Position = UDim2.new(0, 50, 0.5, -75)
+RadarFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+RadarFrame.Visible = false
+
+Visuals:CreateToggle({
+    Name = "Radar 2D",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.RadarEnabled = v
+        RadarFrame.Visible = v
+    end
+})
+
+---------------------------------------------------
+-- PLAYER & SERVER
+---------------------------------------------------
+
+PlayerTab:CreateButton({
+    Name = "Save Position",
+    Callback = function() Vars.SavedPosition = GetRoot() and GetRoot().Position end
+})
+
+PlayerTab:CreateButton({
+    Name = "Teleport Saved",
+    Callback = function()
+        if Vars.SavedPosition then GetRoot().CFrame = CFrame.new(Vars.SavedPosition) end
+    end
+})
+
+ServerTab:CreateButton({
+    Name = "Rejoin Server",
+    Callback = function() TeleportService:Teleport(game.PlaceId, LP) end
+})
+
+---------------------------------------------------
+-- LOOPS (SISTEMAS)
+---------------------------------------------------
+
+-- Loop de Atributos e Noclip (High Frequency)
+RunService.Stepped:Connect(function()
+    local char = GetCharacter()
+    local hum = GetHumanoid()
+    local root = GetRoot()
+    
+    if hum then
+        hum.WalkSpeed = Vars.WalkSpeed
+        hum.JumpPower = Vars.JumpPower
+    end
+
+    if char and Vars.Noclip then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+end)
+
+-- Loop de Combate e ESP (Medium Frequency)
+task.spawn(function()
+    while task.wait(0.1) do
+        local root = GetRoot()
+        if not root then continue end
+
+        -- Kill Aura & Hitbox
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LP and p.Character and p.Character:FindFirstChild("Humanoid") then
+                local e_root = p.Character:FindFirstChild("HumanoidRootPart")
+                if e_root then
+                    -- Hitbox
+                    if Vars.Hitbox then
+                        e_root.Size = Vector3.new(10, 10, 10)
+                        e_root.Transparency = 0.7
+                    else
+                        e_root.Size = Vector3.new(2, 2, 1)
+                        e_root.Transparency = 0
+                    end
+
+                    -- Kill Aura
+                    if Vars.KillAura and (root.Position - e_root.Position).Magnitude < 15 then
+                        -- Nota: Em muitos jogos p.Character.Humanoid.Health = 0 é client-side.
+                        -- Geralmente usa-se um RemoteEvent de ataque aqui.
+                        p.Character.Humanoid.Health = 0 
+                    end
+                end
+
+                -- ESP Highlight
+                if Vars.ESPEnabled and not p.Character:FindFirstChild("Highlight") then
+                    local h = Instance.new("Highlight", p.Character)
+                    h.FillColor = Color3.fromRGB(255, 0, 0)
+                end
+            end
+        end
+    end
+end)
+
+-- Input para Infinite Jump
+UIS.JumpRequest:Connect(function()
+    local hum = GetHumanoid()
+    if Vars.InfiniteJump and hum then
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+Rayfield:Notify({Title = "Nebula Hub", Content = "Script Carregado com Sucesso!", Duration = 5})
