@@ -1,6 +1,10 @@
---[[
-    Nebula Hub - Fixed & Adapted
+--[[ 
+    Hashiras Hub - Fixed & Improved
 ]]
+
+---------------------------------------------------
+-- SERVICES
+---------------------------------------------------
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
@@ -12,7 +16,7 @@ local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 ---------------------------------------------------
--- VARIÁVEIS
+-- VARS
 ---------------------------------------------------
 
 local Vars = {
@@ -20,15 +24,15 @@ local Vars = {
     JumpPower = 50,
     InfiniteJump = false,
     Noclip = false,
+    Fly = false,
     Hitbox = false,
     ESPEnabled = false,
     CarESP = false,
-    WheelAimbot = false,
     SavedPosition = nil
 }
 
 ---------------------------------------------------
--- FUNÇÕES
+-- CHARACTER FUNCTIONS
 ---------------------------------------------------
 
 local function GetCharacter()
@@ -58,10 +62,10 @@ local Window = Rayfield:CreateWindow({
     ConfigurationSaving = {Enabled = false}
 })
 
-local Combat = Window:CreateTab("Combate")
-local Movement = Window:CreateTab("Movemento")
-local Visuals = Window:CreateTab("Visuais")
-local TeleportTab = Window:CreateTab("Teleporte")
+local Combat = Window:CreateTab("Combat")
+local Movement = Window:CreateTab("Movement")
+local Visuals = Window:CreateTab("Visuals")
+local TeleportTab = Window:CreateTab("Teleport")
 local ServerTab = Window:CreateTab("Server")
 
 ---------------------------------------------------
@@ -76,28 +80,13 @@ Combat:CreateToggle({
     end
 })
 
-Combat:CreateToggle({
-    Name = "Wheel Aimbot",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.WheelAimbot = v
-    end
-})
-
-Combat:CreateButton({
-    Name = "Aimbot External",
-    Callback = function()
-        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-universal-111551"))()
-    end
-})
-
 ---------------------------------------------------
 -- MOVEMENT
 ---------------------------------------------------
 
 Movement:CreateSlider({
     Name = "WalkSpeed",
-    Range = {16,300},
+    Range = {16,200},
     Increment = 1,
     CurrentValue = 16,
     Callback = function(v)
@@ -107,7 +96,7 @@ Movement:CreateSlider({
 
 Movement:CreateSlider({
     Name = "JumpPower",
-    Range = {50,400},
+    Range = {50,200},
     Increment = 1,
     CurrentValue = 50,
     Callback = function(v)
@@ -132,6 +121,18 @@ Movement:CreateToggle({
 })
 
 ---------------------------------------------------
+-- FLY
+---------------------------------------------------
+
+Movement:CreateToggle({
+    Name = "Fly",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.Fly = v
+    end
+})
+
+---------------------------------------------------
 -- VISUALS
 ---------------------------------------------------
 
@@ -139,13 +140,15 @@ Visuals:CreateToggle({
     Name = "FullBright",
     CurrentValue = false,
     Callback = function(v)
+
         if v then
-            Lighting.Ambient = Color3.fromRGB(255,255,255)
             Lighting.Brightness = 2
+            Lighting.Ambient = Color3.fromRGB(255,255,255)
         else
-            Lighting.Ambient = Color3.fromRGB(127,127,127)
             Lighting.Brightness = 1
+            Lighting.Ambient = Color3.fromRGB(127,127,127)
         end
+
     end
 })
 
@@ -209,10 +212,23 @@ TeleportTab:CreateButton({
 
         if not SelectedPlayer then return end
 
-        local target = Players:FindFirstChild(SelectedPlayer)
+        local target = nil
+
+        for _,p in pairs(Players:GetPlayers()) do
+            if p.Name == SelectedPlayer then
+                target = p
+                break
+            end
+        end
 
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            GetRoot().CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+
+            local root = GetRoot()
+
+            if root then
+                root.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+            end
+
         end
 
     end
@@ -223,16 +239,21 @@ TeleportTab:CreateButton({
 ---------------------------------------------------
 
 local CarList = {}
+local CarObjects = {}
 local SelectedCar = nil
 
 local function UpdateCarList()
 
     CarList = {}
+    CarObjects = {}
 
     for _,v in pairs(workspace:GetDescendants()) do
+
         if v:IsA("VehicleSeat") then
-            table.insert(CarList,v:GetFullName())
+            table.insert(CarList,v.Name)
+            CarObjects[v.Name] = v
         end
+
     end
 
 end
@@ -262,10 +283,46 @@ TeleportTab:CreateButton({
 
         if not SelectedCar then return end
 
-        local seat = workspace:FindFirstChild(SelectedCar,true)
+        local seat = CarObjects[SelectedCar]
 
         if seat then
-            GetRoot().CFrame = seat.CFrame + Vector3.new(0,2,0)
+
+            local root = GetRoot()
+
+            if root then
+                root.CFrame = seat.CFrame + Vector3.new(0,2,0)
+            end
+
+        end
+
+    end
+})
+
+---------------------------------------------------
+-- SAVE POSITION
+---------------------------------------------------
+
+TeleportTab:CreateButton({
+    Name = "Save Position",
+    Callback = function()
+
+        local root = GetRoot()
+
+        if root then
+            Vars.SavedPosition = root.CFrame
+        end
+
+    end
+})
+
+TeleportTab:CreateButton({
+    Name = "Teleport Saved Position",
+    Callback = function()
+
+        local root = GetRoot()
+
+        if root and Vars.SavedPosition then
+            root.CFrame = Vars.SavedPosition
         end
 
     end
@@ -283,7 +340,7 @@ ServerTab:CreateButton({
 })
 
 ---------------------------------------------------
--- MOVEMENT LOOP (CORRIGIDO)
+-- MAIN LOOP
 ---------------------------------------------------
 
 RunService.Heartbeat:Connect(function()
@@ -293,70 +350,73 @@ RunService.Heartbeat:Connect(function()
 
     if hum then
 
+        hum.WalkSpeed = Vars.WalkSpeed
+        hum.JumpPower = Vars.JumpPower
         hum.UseJumpPower = true
-
-        if hum.WalkSpeed ~= Vars.WalkSpeed then
-            hum.WalkSpeed = Vars.WalkSpeed
-        end
-
-        if hum.JumpPower ~= Vars.JumpPower then
-            hum.JumpPower = Vars.JumpPower
-        end
 
     end
 
-    if char and Vars.Noclip then
+    if char then
+
         for _,v in pairs(char:GetDescendants()) do
+
             if v:IsA("BasePart") then
-                v.CanCollide = false
+                v.CanCollide = not Vars.Noclip
             end
+
         end
+
     end
 
 end)
 
 ---------------------------------------------------
--- COMBAT / ESP / AIMBOT
+-- ESP LOOP
 ---------------------------------------------------
 
 task.spawn(function()
 
-    while task.wait(0.15) do
+    while task.wait(0.3) do
 
         for _,p in pairs(Players:GetPlayers()) do
 
             if p ~= LP and p.Character then
 
-                ---------------------------------------------------
-                -- PLAYER ESP
-                ---------------------------------------------------
+                if Vars.ESPEnabled then
 
-                if Vars.ESPEnabled and not p.Character:FindFirstChild("Highlight") then
-                    local h = Instance.new("Highlight")
-                    h.FillColor = Color3.fromRGB(255,0,0)
-                    h.Parent = p.Character
+                    if not p.Character:FindFirstChild("Highlight") then
+
+                        local h = Instance.new("Highlight")
+                        h.FillColor = Color3.fromRGB(255,0,0)
+                        h.Parent = p.Character
+
+                    end
+
+                else
+
+                    local h = p.Character:FindFirstChild("Highlight")
+
+                    if h then
+                        h:Destroy()
+                    end
+
                 end
 
-                ---------------------------------------------------
-                -- HITBOX
-                ---------------------------------------------------
-
                 if Vars.Hitbox and p.Character:FindFirstChild("HumanoidRootPart") then
+
                     local hrp = p.Character.HumanoidRootPart
-                    hrp.Size = Vector3.new(10,10,10)
-                    hrp.Transparency = 0.6
+                    hrp.Size = Vector3.new(8,8,8)
+                    hrp.Transparency = 0.5
                     hrp.Massless = true
+
                 end
 
             end
 
         end
 
-        ---------------------------------------------------
-        -- CAR ESP
-        ---------------------------------------------------
-
         if Vars.CarESP then
+
             for _,v in pairs(workspace:GetDescendants()) do
 
                 if v:IsA("VehicleSeat") and not v:FindFirstChild("CarESP") then
@@ -368,41 +428,6 @@ task.spawn(function()
 
                 end
 
-            end
-        end
-
-        ---------------------------------------------------
-        -- WHEEL AIMBOT
-        ---------------------------------------------------
-
-        if Vars.WheelAimbot then
-
-            local closest = nil
-            local dist = math.huge
-
-            for _,v in pairs(workspace:GetDescendants()) do
-
-                if v:IsA("BasePart") then
-
-                    local name = string.lower(v.Name)
-
-                    if string.find(name,"wheel") or string.find(name,"tire") then
-
-                        local d = (Camera.CFrame.Position - v.Position).Magnitude
-
-                        if d < dist then
-                            dist = d
-                            closest = v
-                        end
-
-                    end
-
-                end
-
-            end
-
-            if closest then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest.Position)
             end
 
         end
@@ -434,7 +459,7 @@ end)
 ---------------------------------------------------
 
 Rayfield:Notify({
-    Title = "Nebula Hub",
+    Title = "Hashiras Hub",
     Content = "Script Loaded Successfully!",
     Duration = 5
 })
