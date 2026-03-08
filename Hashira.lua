@@ -72,13 +72,34 @@ local ServerTab = Window:CreateTab("Server")
 -- COMBAT
 ---------------------------------------------------
 
+-- Toggle para Hitbox
 Combat:CreateToggle({
     Name = "Hitbox Expander",
     CurrentValue = false,
+    Flag = "HitboxToggle",
     Callback = function(v)
         Vars.Hitbox = v
+        if v then
+            -- Script focado em Hitbox (Exemplo Universal)
+            loadstring(game:HttpGet("https://github.com/RectangularObject/UniversalHBE/releases/latest/download/main.lua", true))()
+        end
     end
 })
+
+-- Toggle para Aimbot
+Combat:CreateToggle({
+    Name = "Universal Aimbot",
+    CurrentValue = false,
+    Flag = "AimbotToggle",
+    Callback = function(v)
+        Vars.Aimbot = v
+        if v then
+            -- O script que você enviou (Aimbot Universal)
+            loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-universal-111551"))()
+        end
+    end
+})
+
 
 ---------------------------------------------------
 -- MOVEMENT
@@ -124,12 +145,21 @@ Movement:CreateToggle({
 -- FLY
 ---------------------------------------------------
 
-Movement:CreateToggle({
-    Name = "Fly",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.Fly = v
-    end
+local FlyToggle = Movement:CreateToggle({
+   Name = "Fly",
+   CurrentValue = false,
+   Flag = "FlyToggle", -- Identificador único
+   Callback = function(Value)
+      Vars.Fly = Value
+      if Value then
+         -- Carrega o script de Fly quando ativado
+         loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+      else
+         -- Nota: A maioria dos scripts de Fly externos exige o reset do personagem 
+         -- ou um comando específico para desligar totalmente.
+         print("Fly Desativado")
+      end
+   end,
 })
 
 ---------------------------------------------------
@@ -172,66 +202,71 @@ Visuals:CreateToggle({
 -- TELEPORT PLAYERS
 ---------------------------------------------------
 
-local PlayerList = {}
 local SelectedPlayer = nil
+local PlayerList = {}
 
-local function UpdatePlayerList()
-
+-- Função para atualizar a tabela de jogadores
+local function GetPlayerNames()
     PlayerList = {}
-
-    for _,p in pairs(Players:GetPlayers()) do
-        if p ~= LP then
-            table.insert(PlayerList,p.Name)
+    for _, p in pairs(game:GetService("Players"):GetPlayers()) do
+        if p ~= game:GetService("Players").LocalPlayer then
+            table.insert(PlayerList, p.Name)
         end
     end
-
+    return PlayerList
 end
 
-UpdatePlayerList()
-
+-- Criar o Dropdown de Jogadores
 local PlayerDropdown = TeleportTab:CreateDropdown({
-    Name = "Players",
-    Options = PlayerList,
-    CurrentOption = nil,
-    Callback = function(opt)
-        SelectedPlayer = opt
-    end
+    Name = "Selecionar Jogador",
+    Options = GetPlayerNames(),
+    CurrentOption = "",
+    MultipleOptions = false,
+    Flag = "TargetPlayer",
+    Callback = function(Option)
+        -- No Rayfield V2/V3 a Option vem como uma tabela ou string dependendo da versão
+        SelectedPlayer = type(Option) == "table" and Option[1] or Option
+    end,
 })
 
+-- Botão para Atualizar a Lista
 TeleportTab:CreateButton({
-    Name = "Update Player List",
+    Name = "Atualizar Lista de Jogadores",
     Callback = function()
-        UpdatePlayerList()
-        PlayerDropdown:Refresh(PlayerList)
-    end
+        PlayerDropdown:Refresh(GetPlayerNames(), true) -- Atualiza e limpa a seleção atual
+    end,
 })
 
+-- Botão para Teleportar
 TeleportTab:CreateButton({
-    Name = "Teleport To Player",
+    Name = "Teleportar para o Jogador",
     Callback = function()
-
-        if not SelectedPlayer then return end
-
-        local target = nil
-
-        for _,p in pairs(Players:GetPlayers()) do
-            if p.Name == SelectedPlayer then
-                target = p
-                break
+        if SelectedPlayer and SelectedPlayer ~= "" then
+            local target = game:GetService("Players"):FindFirstChild(SelectedPlayer)
+            local lp = game:GetService("Players").LocalPlayer
+            
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                    -- Teleporta 7 studs acima (como no seu script original Xsat)
+                    lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 7, 0)
+                end
+            else
+                Rayfield:Notify({
+                    Title = "Erro",
+                    Content = "Jogador não encontrado ou sem personagem.",
+                    Duration = 3,
+                    Image = 4483362458,
+                })
             end
+        else
+            Rayfield:Notify({
+                Title = "Aviso",
+                Content = "Por favor, selecione um jogador primeiro!",
+                Duration = 3,
+                Image = 4483362458,
+            })
         end
-
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-
-            local root = GetRoot()
-
-            if root then
-                root.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
-            end
-
-        end
-
-    end
+    end,
 })
 
 ---------------------------------------------------
@@ -242,26 +277,43 @@ local CarList = {}
 local CarObjects = {}
 local SelectedCar = nil
 
-local function UpdateCarList()
+-- Função para identificar o dono do carro
+local function GetCarOwner(seat)
+    local model = seat:FindFirstAncestorOfClass("Model")
+    if model then
+        -- Tenta encontrar o dono por Atributo, Valor ou Nome do Modelo
+        local owner = model:GetAttribute("Owner") or model:FindFirstChild("Owner")
+        if owner then return tostring(owner) end
+        
+        -- Fallback: verifica se o nome do modelo contém o nome de algum jogador
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if model.Name:find(player.Name) then return player.Name end
+        end
+    end
+    return "Desconhecido"
+end
 
+local function UpdateCarList()
     CarList = {}
     CarObjects = {}
 
-    for _,v in pairs(workspace:GetDescendants()) do
-
+    for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("VehicleSeat") then
-            table.insert(CarList,v.Name)
-            CarObjects[v.Name] = v
+            local ownerName = GetCarOwner(v)
+            local displayName = "🚗 " .. v.Name .. " [" .. ownerName .. "]"
+            
+            table.insert(CarList, displayName)
+            CarObjects[displayName] = v
         end
-
     end
-
 end
 
+-- Inicializa a lista
 UpdateCarList()
 
+-- UI Elements
 local CarDropdown = TeleportTab:CreateDropdown({
-    Name = "Cars",
+    Name = "Selecionar Veículo",
     Options = CarList,
     CurrentOption = nil,
     Callback = function(opt)
@@ -270,31 +322,28 @@ local CarDropdown = TeleportTab:CreateDropdown({
 })
 
 TeleportTab:CreateButton({
-    Name = "Update Car List",
+    Name = "🔄 Atualizar Lista de Carros",
     Callback = function()
         UpdateCarList()
-        CarDropdown:Refresh(CarList)
+        CarDropdown:Refresh(CarList, true) -- True para resetar a seleção se necessário
     end
 })
 
 TeleportTab:CreateButton({
-    Name = "Teleport Driver Seat",
+    Name = "📍 Teleportar para o Carro",
     Callback = function()
-
         if not SelectedCar then return end
-
+        
         local seat = CarObjects[SelectedCar]
-
-        if seat then
-
+        if seat and seat.Parent then
             local root = GetRoot()
-
             if root then
-                root.CFrame = seat.CFrame + Vector3.new(0,2,0)
+                -- Teleporta um pouco acima para não bugar no teto
+                root.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
             end
-
+        else
+            print("Carro não encontrado ou foi deletado.")
         end
-
     end
 })
 
