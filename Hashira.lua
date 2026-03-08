@@ -1,6 +1,8 @@
 --[[ 
-    Hashiras Hub - Fixed & Improved
+    Hashiras Hub - Em beta
 ]]
+
+repeat task.wait() until game:IsLoaded()
 
 ---------------------------------------------------
 -- SERVICES
@@ -11,7 +13,7 @@ local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 local UIS = game:GetService("UserInputService")
-
+local HttpService = game:GetService("HttpService")
 local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -59,7 +61,8 @@ local Window = Rayfield:CreateWindow({
     Name = "Hashiras Hub",
     LoadingTitle = "Hashiras Hub",
     LoadingSubtitle = "Hub em atualização",
-    ConfigurationSaving = {Enabled = false}
+    ConfigurationSaving = {Enabled = false},
+    KeySystem = false
 })
 
 local Combat = Window:CreateTab("Combat")
@@ -72,34 +75,26 @@ local ServerTab = Window:CreateTab("Server")
 -- COMBAT
 ---------------------------------------------------
 
--- Toggle para Hitbox
 Combat:CreateToggle({
     Name = "Hitbox Expander",
     CurrentValue = false,
-    Flag = "HitboxToggle",
     Callback = function(v)
         Vars.Hitbox = v
         if v then
-            -- Script focado em Hitbox (Exemplo Universal)
-            loadstring(game:HttpGet("https://github.com/RectangularObject/UniversalHBE/releases/latest/download/main.lua", true))()
+            loadstring(game:HttpGet("https://github.com/RectangularObject/UniversalHBE/releases/latest/download/main.lua",true))()
         end
     end
 })
 
--- Toggle para Aimbot
 Combat:CreateToggle({
     Name = "Universal Aimbot",
     CurrentValue = false,
-    Flag = "AimbotToggle",
     Callback = function(v)
-        Vars.Aimbot = v
         if v then
-            -- O script que você enviou (Aimbot Universal)
             loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-universal-111551"))()
         end
     end
 })
-
 
 ---------------------------------------------------
 -- MOVEMENT
@@ -141,25 +136,15 @@ Movement:CreateToggle({
     end
 })
 
----------------------------------------------------
--- FLY
----------------------------------------------------
-
-local FlyToggle = Movement:CreateToggle({
+Movement:CreateToggle({
    Name = "Fly",
    CurrentValue = false,
-   Flag = "FlyToggle", -- Identificador único
    Callback = function(Value)
       Vars.Fly = Value
       if Value then
-         -- Carrega o script de Fly quando ativado
          loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
-      else
-         -- Nota: A maioria dos scripts de Fly externos exige o reset do personagem 
-         -- ou um comando específico para desligar totalmente.
-         print("Fly Desativado")
       end
-   end,
+   end
 })
 
 ---------------------------------------------------
@@ -170,7 +155,6 @@ Visuals:CreateToggle({
     Name = "FullBright",
     CurrentValue = false,
     Callback = function(v)
-
         if v then
             Lighting.Brightness = 2
             Lighting.Ambient = Color3.fromRGB(255,255,255)
@@ -178,7 +162,6 @@ Visuals:CreateToggle({
             Lighting.Brightness = 1
             Lighting.Ambient = Color3.fromRGB(127,127,127)
         end
-
     end
 })
 
@@ -199,142 +182,85 @@ Visuals:CreateToggle({
 })
 
 ---------------------------------------------------
--- TELEPORT PLAYERS
+-- TELEPORT (Players / Cars / Saved)
 ---------------------------------------------------
 
+-- PLAYER TELEPORT
 local SelectedPlayer = nil
 local PlayerList = {}
-
--- Função para atualizar a tabela de jogadores
 local function GetPlayerNames()
     PlayerList = {}
-    for _, p in pairs(game:GetService("Players"):GetPlayers()) do
-        if p ~= game:GetService("Players").LocalPlayer then
-            table.insert(PlayerList, p.Name)
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LP then
+            table.insert(PlayerList,p.Name)
         end
     end
     return PlayerList
 end
 
--- Criar o Dropdown de Jogadores
 local PlayerDropdown = TeleportTab:CreateDropdown({
     Name = "Selecionar Jogador",
     Options = GetPlayerNames(),
-    CurrentOption = "",
+    CurrentOption = nil,
     MultipleOptions = false,
-    Flag = "TargetPlayer",
-    Callback = function(Option)
-        -- No Rayfield V2/V3 a Option vem como uma tabela ou string dependendo da versão
-        SelectedPlayer = type(Option) == "table" and Option[1] or Option
-    end,
+    Callback = function(opt)
+        SelectedPlayer = type(opt) == "table" and opt[1] or opt
+    end
 })
 
--- Botão para Atualizar a Lista
 TeleportTab:CreateButton({
-    Name = "Atualizar Lista de Jogadores",
+    Name = "Atualizar Lista",
     Callback = function()
-        PlayerDropdown:Refresh(GetPlayerNames(), true) -- Atualiza e limpa a seleção atual
-    end,
+        PlayerDropdown:Refresh(GetPlayerNames(),true)
+    end
 })
 
--- Botão para Teleportar
 TeleportTab:CreateButton({
-    Name = "Teleportar para o Jogador",
+    Name = "Teleportar para Jogador",
     Callback = function()
-        if SelectedPlayer and SelectedPlayer ~= "" then
-            local target = game:GetService("Players"):FindFirstChild(SelectedPlayer)
-            local lp = game:GetService("Players").LocalPlayer
-            
-            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                    -- Teleporta 7 studs acima (como no seu script original Xsat)
-                    lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 7, 0)
-                end
-            else
-                Rayfield:Notify({
-                    Title = "Erro",
-                    Content = "Jogador não encontrado ou sem personagem.",
-                    Duration = 3,
-                    Image = 4483362458,
-                })
-            end
-        else
-            Rayfield:Notify({
-                Title = "Aviso",
-                Content = "Por favor, selecione um jogador primeiro!",
-                Duration = 3,
-                Image = 4483362458,
-            })
-        end
-    end,
-})
-
----------------------------------------------------
--- TELEPORT CARS
----------------------------------------------------
-
-local CarList = {}
-local CarObjects = {}
-local SelectedCar = nil
-
--- Função para identificar o dono do carro
-local function GetCarOwner(seat)
-    local model = seat:FindFirstAncestorOfClass("Model")
-    if model then
-local CarList = {}
-local CarObjects = {}
-local SelectedCar = nil
-
--- Função para extrair nome do carro e dono (Nogales Heróica Style)
-local function GetCarDetails(seat)
-    local carModel = seat:FindFirstAncestorOfClass("Model")
-    local owner = "Desconhecido"
-    local carName = carModel and carModel.Name or "Veículo"
-
-    if carModel then
-        -- 1. Procura em Atributos (Sistema mais comum)
-        local attr = carModel:GetAttribute("Owner") or carModel:GetAttribute("Dono") or carModel:GetAttribute("OwnerName")
-        
-        -- 2. Procura por Values dentro do modelo
-        local val = carModel:FindFirstChild("Owner") or carModel:FindFirstChild("Dono") or carModel:FindFirstChild("OwnerName")
-
-        if attr then
-            owner = tostring(attr)
-        elseif val and (val:IsA("StringValue") or val:IsA("ObjectValue")) then
-            owner = tostring(val.Value)
-        else
-            -- 3. Fallback: Checa se o nome de um player está no nome do modelo (ex: "Carro de Player123")
-            for _, p in pairs(game.Players:GetPlayers()) do
-                if carModel.Name:find(p.Name) then
-                    owner = p.Name
-                    break
-                end
+        if SelectedPlayer then
+            local target = Players:FindFirstChild(SelectedPlayer)
+            local root = GetRoot()
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and root then
+                root.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0,7,0)
             end
         end
     end
-    return carName, owner
+})
+
+-- CAR TELEPORT
+local CarList = {}
+local CarObjects = {}
+local SelectedCar = nil
+
+local function GetCarDetails(seat)
+    local model = seat:FindFirstAncestorOfClass("Model")
+    local owner = "Desconhecido"
+    local name = model and model.Name or "Carro"
+    if model then
+        local attr = model:GetAttribute("Owner") or model:GetAttribute("Dono")
+        local val = model:FindFirstChild("Owner") or model:FindFirstChild("Dono")
+        if attr then owner = tostring(attr)
+        elseif val and val:IsA("StringValue") then owner = val.Value end
+    end
+    return name, owner
 end
 
 local function UpdateCarList()
     CarList = {}
     CarObjects = {}
-
-    for _, v in pairs(workspace:GetDescendants()) do
-        -- Verifica as duas classes possíveis de assento
-        if v:IsA("VehicleSeat") or v:IsA("DriveSeat") then
+    for _,v in pairs(workspace:GetDescendants()) do
+        if v:IsA("VehicleSeat") then
             local name, owner = GetCarDetails(v)
-            local label = "🚘 " .. name .. " [" .. owner .. "]"
-            
-            table.insert(CarList, label)
+            local label = "🚗 "..name.." ["..owner.."]"
+            table.insert(CarList,label)
             CarObjects[label] = v
         end
     end
 end
 
--- Inicializa
 UpdateCarList()
 
--- Dropdown
 local CarDropdown = TeleportTab:CreateDropdown({
     Name = "Selecionar Carro",
     Options = CarList,
@@ -344,95 +270,189 @@ local CarDropdown = TeleportTab:CreateDropdown({
     end
 })
 
--- Botão: Atualizar
 TeleportTab:CreateButton({
-    Name = "🔄 Atualizar Lista",
+    Name = "Atualizar Carros",
     Callback = function()
         UpdateCarList()
-        CarDropdown:Refresh(CarList, true)
+        CarDropdown:Refresh(CarList,true)
     end
 })
 
--- Botão: Teleportar (Carro)
 TeleportTab:CreateButton({
-    Name = "🚀 Teleportar para Carro",
+    Name = "Teleportar para Carro",
     Callback = function()
-        if not SelectedCar then return end
-        
-        local seat = CarObjects[SelectedCar]
-        local character = game.Players.LocalPlayer.Character
-        
-        if seat and character and character:FindFirstChild("HumanoidRootPart") then
-            -- Teleporta 3 studs acima do assento para não bugar no chassi
-            character.HumanoidRootPart.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
+        if SelectedCar then
+            local seat = CarObjects[SelectedCar]
+            local root = GetRoot()
+            if seat and root then
+                root.CFrame = seat.CFrame * CFrame.new(0,3,0)
+            end
         end
     end
 })
-        -- Tenta encontrar o dono por Atributo, Valor ou Nome do Modelo
-        local owner = model:GetAttribute("Owner") or model:FindFirstChild("Owner")
-        if owner then return tostring(owner) end
-        
-        -- Fallback: verifica se o nome do modelo contém o nome de algum jogador
-        for _, player in pairs(game.Players:GetPlayers()) do
-            if model.Name:find(player.Name) then return player.Name end
-        end
-    end
-    return "Desconhecido"
-end
 
-local function UpdateCarList()
-    CarList = {}
-    CarObjects = {}
-
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("VehicleSeat") then
-            local ownerName = GetCarOwner(v)
-            local displayName = "🚗 " .. v.Name .. " [" .. ownerName .. "]"
-            
-            table.insert(CarList, displayName)
-            CarObjects[displayName] = v
-        end
-    end
-
----------------------------------------------------
--- SAVE POSITION
----------------------------------------------------
-
+-- SAVED POSITION
 TeleportTab:CreateButton({
     Name = "Save Position",
     Callback = function()
-
         local root = GetRoot()
-
-        if root then
-            Vars.SavedPosition = root.CFrame
-        end
-
+        if root then Vars.SavedPosition = root.CFrame end
     end
 })
 
 TeleportTab:CreateButton({
     Name = "Teleport Saved Position",
     Callback = function()
-
         local root = GetRoot()
-
-        if root and Vars.SavedPosition then
-            root.CFrame = Vars.SavedPosition
-        end
-
+        if root and Vars.SavedPosition then root.CFrame = Vars.SavedPosition end
     end
 })
 
 ---------------------------------------------------
--- SERVER
+-- SERVER TAB (Avançado)
 ---------------------------------------------------
 
+local ServerList = {}
+local ServerIDs = {}
+local SelectedServer = nil
+local AutoHop = false
+
+-- CONTADOR DE PLAYERS
+ServerTab:CreateParagraph({
+    Title = "Server Info",
+    Content = "Players: "..#Players:GetPlayers().." / "..Players.MaxPlayers
+})
+
+-- REJOIN
 ServerTab:CreateButton({
     Name = "Rejoin Server",
     Callback = function()
-        TeleportService:Teleport(game.PlaceId,LP)
+        TeleportService:Teleport(game.PlaceId, LP)
     end
+})
+
+-- MOSTRAR PING
+ServerTab:CreateButton({
+    Name = "Mostrar Ping",
+    Callback = function()
+        local ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
+        Rayfield:Notify({
+            Title = "Ping do Servidor",
+            Content = ping.." ms",
+            Duration = 5
+        })
+    end
+})
+
+-- SERVER HOP NORMAL
+local function ServerHop()
+    local url = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+    local response = game:HttpGet(url)
+    local data = HttpService:JSONDecode(response)
+    for _,server in pairs(data.data) do
+        if server.id ~= game.JobId then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LP)
+            break
+        end
+    end
+end
+
+ServerTab:CreateButton({
+    Name = "Server Hop",
+    Callback = function() ServerHop() end
+})
+
+-- SERVER HOP QUASE VAZIO
+local function LowServerHop()
+    local url = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+    local response = game:HttpGet(url)
+    local data = HttpService:JSONDecode(response)
+    for _,server in pairs(data.data) do
+        if server.playing <= 3 and server.id ~= game.JobId then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LP)
+            break
+        end
+    end
+end
+
+ServerTab:CreateButton({
+    Name = "Server Hop (Quase vazio)",
+    Callback = function() LowServerHop() end
+})
+
+-- AUTO SERVER HOP
+ServerTab:CreateToggle({
+    Name = "Auto Server Hop",
+    CurrentValue = false,
+    Callback = function(v)
+        AutoHop = v
+        if v then
+            task.spawn(function()
+                while AutoHop do
+                    task.wait(30)
+                    ServerHop()
+                end
+            end)
+        end
+    end
+})
+
+-- LISTA DE SERVIDORES
+local function UpdateServerList()
+    ServerList = {}
+    ServerIDs = {}
+    local url = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+    local response = game:HttpGet(url)
+    local data = HttpService:JSONDecode(response)
+    for _,server in pairs(data.data) do
+        local label = "Players "..server.playing.."/"..server.maxPlayers
+        table.insert(ServerList,label)
+        ServerIDs[label] = server.id
+    end
+end
+
+UpdateServerList()
+
+local ServerDropdown = ServerTab:CreateDropdown({
+    Name = "Lista de Servidores",
+    Options = ServerList,
+    CurrentOption = nil,
+    MultipleOptions = false,
+    Callback = function(opt)
+        SelectedServer = opt
+    end
+})
+
+ServerTab:CreateButton({
+    Name = "Atualizar Lista de Servidores",
+    Callback = function()
+        UpdateServerList()
+        ServerDropdown:Refresh(ServerList,true)
+    end
+})
+
+ServerTab:CreateButton({
+    Name = "Entrar no Servidor Selecionado",
+    Callback = function()
+        if SelectedServer then
+            local id = ServerIDs[SelectedServer]
+            if id then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId,id,LP)
+            end
+        end
+    end
+})
+
+-- COPY JOB ID
+ServerTab:CreateButton({
+    Name = "Copiar JobId",
+    Callback = function() setclipboard(game.JobId) end
+})
+
+-- COPY PLACE ID
+ServerTab:CreateButton({
+    Name = "Copiar PlaceId",
+    Callback = function() setclipboard(game.PlaceId) end
 })
 
 ---------------------------------------------------
@@ -440,30 +460,20 @@ ServerTab:CreateButton({
 ---------------------------------------------------
 
 RunService.Heartbeat:Connect(function()
-
     local char = GetCharacter()
     local hum = GetHumanoid()
-
     if hum then
-
         hum.WalkSpeed = Vars.WalkSpeed
         hum.JumpPower = Vars.JumpPower
         hum.UseJumpPower = true
-
     end
-
     if char then
-
         for _,v in pairs(char:GetDescendants()) do
-
             if v:IsA("BasePart") then
                 v.CanCollide = not Vars.Noclip
             end
-
         end
-
     end
-
 end)
 
 ---------------------------------------------------
@@ -471,65 +481,39 @@ end)
 ---------------------------------------------------
 
 task.spawn(function()
-
     while task.wait(0.3) do
-
         for _,p in pairs(Players:GetPlayers()) do
-
             if p ~= LP and p.Character then
-
-                if Vars.ESPEnabled then
-
-                    if not p.Character:FindFirstChild("Highlight") then
-
-                        local h = Instance.new("Highlight")
-                        h.FillColor = Color3.fromRGB(255,0,0)
-                        h.Parent = p.Character
-
-                    end
-
-                else
-
+                -- Player ESP
+                if Vars.ESPEnabled and not p.Character:FindFirstChild("Highlight") then
+                    local h = Instance.new("Highlight")
+                    h.FillColor = Color3.fromRGB(255,0,0)
+                    h.Parent = p.Character
+                elseif not Vars.ESPEnabled then
                     local h = p.Character:FindFirstChild("Highlight")
-
-                    if h then
-                        h:Destroy()
-                    end
-
+                    if h then h:Destroy() end
                 end
-
+                -- Hitbox
                 if Vars.Hitbox and p.Character:FindFirstChild("HumanoidRootPart") then
-
                     local hrp = p.Character.HumanoidRootPart
                     hrp.Size = Vector3.new(8,8,8)
                     hrp.Transparency = 0.5
                     hrp.Massless = true
-
                 end
-
             end
-
         end
-
+        -- Car ESP
         if Vars.CarESP then
-
             for _,v in pairs(workspace:GetDescendants()) do
-
                 if v:IsA("VehicleSeat") and not v:FindFirstChild("CarESP") then
-
                     local h = Instance.new("Highlight")
                     h.Name = "CarESP"
                     h.FillColor = Color3.fromRGB(0,255,255)
                     h.Parent = v
-
                 end
-
             end
-
         end
-
     end
-
 end)
 
 ---------------------------------------------------
@@ -537,17 +521,10 @@ end)
 ---------------------------------------------------
 
 UIS.JumpRequest:Connect(function()
-
     if Vars.InfiniteJump then
-
         local hum = GetHumanoid()
-
-        if hum then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
-
 end)
 
 ---------------------------------------------------
