@@ -366,7 +366,7 @@ end
 })
 
 ---------------------------------------------------
--- CAR ESP
+-- CAR ESP + TRACER
 ---------------------------------------------------
 
 local CarESP = false
@@ -380,10 +380,14 @@ Callback = function(v)
 CarESP = v
 
 if not v then
-for _,gui in pairs(CarESPObjects) do
-if gui then gui:Destroy() end
+
+for _,data in pairs(CarESPObjects) do
+if data.Gui then data.Gui:Destroy() end
+if data.Line then data.Line:Remove() end
 end
+
 CarESPObjects = {}
+
 end
 
 end
@@ -402,25 +406,24 @@ text.Size = UDim2.new(1,0,1,0)
 text.BackgroundTransparency = 1
 text.TextStrokeTransparency = 0
 text.TextScaled = true
+text.Font = Enum.Font.SourceSansBold
 text.Parent = billboard
+
+local line = Drawing.new("Line")
+line.Color = Color3.fromRGB(255,0,0)
+line.Thickness = 2
+line.Visible = false
 
 CarESPObjects[model] = {
 Gui = billboard,
 Text = text,
-Seat = seat
+Seat = seat,
+Line = line
 }
 
 end
 
-RunService.RenderStepped:Connect(function()
-
-if not CarESP then return end
-
-local char = GetCharacter()
-local hrp = char:FindFirstChild("HumanoidRootPart")
-
-if not hrp then return end
-
+-- escaneia carros
 for _,v in pairs(workspace:GetDescendants()) do
 
 if v:IsA("VehicleSeat") or v.Name == "DriveSeat" then
@@ -428,22 +431,36 @@ if v:IsA("VehicleSeat") or v.Name == "DriveSeat" then
 local model = v:FindFirstAncestorOfClass("Model")
 
 if model and not CarESPObjects[model] then
-CreateCarESP(model, v)
+CreateCarESP(model,v)
 end
 
 end
 
 end
+
+-- atualiza
+task.spawn(function()
+
+while true do
+task.wait(0.25)
+
+if not CarESP then continue end
+
+local hrp = GetCharacter():FindFirstChild("HumanoidRootPart")
+if not hrp then continue end
+
+local camera = workspace.CurrentCamera
+local viewport = camera.ViewportSize
 
 for model,data in pairs(CarESPObjects) do
 
 local seat = data.Seat
 local text = data.Text
+local line = data.Line
 
 if seat and seat.Parent then
 
 local distance = math.floor((hrp.Position - seat.Position).Magnitude)
-
 local occupied = seat.Occupant ~= nil
 
 if occupied then
@@ -452,7 +469,21 @@ else
 text.TextColor3 = Color3.fromRGB(60,255,60)
 end
 
-text.Text = model.Name .. " [" .. distance .. "m]"
+text.Text = model.Name.." ["..distance.."m]"
+
+local screenPos, visible = camera:WorldToViewportPoint(seat.Position)
+
+if visible then
+
+line.Visible = true
+line.From = Vector2.new(viewport.X/2, viewport.Y)
+line.To = Vector2.new(screenPos.X, screenPos.Y)
+
+else
+line.Visible = false
+end
+
+end
 
 end
 
