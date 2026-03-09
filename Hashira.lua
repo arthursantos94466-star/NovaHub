@@ -306,14 +306,9 @@ CarSeats = {}
 
 for _,v in pairs(workspace:GetDescendants()) do
 
-    if v.Name == "Volante.001" then
+    if v:IsA("VehicleSeat") or v.Name == "DriveSeat" then
 
-        local model = v
-
-        -- sobe até encontrar o modelo do carro
-        while model and not model:IsA("Model") do
-            model = model.Parent
-        end
+        local model = v:FindFirstAncestorOfClass("Model")
 
         if model then
 
@@ -342,11 +337,12 @@ SelectedCar = v[1]
 end
 })
 
-task.spawn(function()
-while task.wait(3) do
+TeleportTab:CreateButton({
+Name = "Refresh Car List",
+Callback = function()
 CarDropdown:Refresh(GetCars())
 end
-end)
+})
 
 TeleportTab:CreateButton({
 Name = "Teleport To Car",
