@@ -450,6 +450,59 @@ end
 })
 
 ---------------------------------------------------
+-- TELEPORT TORRET SEAT
+---------------------------------------------------
+
+local SelectedTorret
+local TorretSeats = {}
+
+local function GetTorretSeats()
+    local torrets = {}
+    TorretSeats = {}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and v.Name:match("TorretSeat") then
+            local model = v:FindFirstAncestorOfClass("Model")
+            local name = model and model.Name or v.Name
+            if not table.find(torrets, name) then
+                table.insert(torrets, name)
+                TorretSeats[name] = v
+            end
+        end
+    end
+    return torrets
+end
+
+local TorretDropdown = TeleportTab:CreateDropdown({
+    Name = "TorretSeat List",
+    Options = GetTorretSeats(),
+    CurrentOption = nil,
+    Callback = function(v)
+        SelectedTorret = v[1]
+    end
+})
+
+TeleportTab:CreateButton({
+    Name = "Refresh TorretSeat List",
+    Callback = function()
+        TorretDropdown:Refresh(GetTorretSeats())
+    end
+})
+
+TeleportTab:CreateButton({
+    Name = "Teleport To TorretSeat",
+    Callback = function()
+        if not SelectedTorret then return end
+        local seat = TorretSeats[SelectedTorret]
+        if seat then
+            local hrp = GetCharacter():FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = seat.CFrame + Vector3.new(0, 3, 0)
+            end
+        end
+    end
+})
+
+---------------------------------------------------
 -- CAR ESP + TRACER (CORRIGIDO)
 ---------------------------------------------------
 
