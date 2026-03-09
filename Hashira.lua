@@ -450,49 +450,49 @@ end
 })
 
 ---------------------------------------------------
--- TELEPORT TORRET SEAT
+-- TELEPORT TURRET SEAT
 ---------------------------------------------------
 
-local SelectedTorret
-local TorretSeats = {}
+local SelectedTurret
+local TurretSeats = {}
 
-local function GetTorretSeats()
-    local torrets = {}
-    TorretSeats = {}
+local function GetTurretSeats()
+    local turrets = {}
+    TurretSeats = {}
     for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and v.Name:match("TorretSeat") then
+        if v:IsA("BasePart") and v.Name:match("TurretSeat") then
             local model = v:FindFirstAncestorOfClass("Model")
             local name = model and model.Name or v.Name
-            if not table.find(torrets, name) then
-                table.insert(torrets, name)
-                TorretSeats[name] = v
+            if not table.find(turrets, name) then
+                table.insert(turrets, name)
+                TurretSeats[name] = v
             end
         end
     end
-    return torrets
+    return turrets
 end
 
-local TorretDropdown = TeleportTab:CreateDropdown({
-    Name = "TorretSeat List",
-    Options = GetTorretSeats(),
+local TurretDropdown = TeleportTab:CreateDropdown({
+    Name = "TurretSeat List",
+    Options = GetTurretSeats(),
     CurrentOption = nil,
     Callback = function(v)
-        SelectedTorret = v[1]
+        SelectedTurret = v[1]
     end
 })
 
-TeleportTab:CreateButton({
-    Name = "Refresh TorretSeat List",
-    Callback = function()
-        TorretDropdown:Refresh(GetTorretSeats())
+-- Atualiza automaticamente a lista de TurretSeats a cada 3 segundos
+task.spawn(function()
+    while task.wait(3) do
+        TurretDropdown:Refresh(GetTurretSeats())
     end
-})
+end)
 
 TeleportTab:CreateButton({
-    Name = "Teleport To TorretSeat",
+    Name = "Teleport To TurretSeat",
     Callback = function()
-        if not SelectedTorret then return end
-        local seat = TorretSeats[SelectedTorret]
+        if not SelectedTurret then return end
+        local seat = TurretSeats[SelectedTurret]
         if seat then
             local hrp = GetCharacter():FindFirstChild("HumanoidRootPart")
             if hrp then
