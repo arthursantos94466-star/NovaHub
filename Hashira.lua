@@ -455,6 +455,7 @@ end
 
 local SelectedTurret
 local TurretSeats = {}
+local TurretDropdown
 
 local function GetTurretSeats()
     local turrets = {}
@@ -472,7 +473,7 @@ local function GetTurretSeats()
     return turrets
 end
 
-local TurretDropdown = TeleportTab:CreateDropdown({
+TurretDropdown = TeleportTab:CreateDropdown({
     Name = "TurretSeat List",
     Options = GetTurretSeats(),
     CurrentOption = nil,
@@ -481,13 +482,30 @@ local TurretDropdown = TeleportTab:CreateDropdown({
     end
 })
 
--- Atualiza automaticamente sem sumir a lista
+-- Atualização automática da lista
 task.spawn(function()
     while task.wait(3) do
         local current = SelectedTurret
-        TurretDropdown:Refresh(GetTurretSeats())
-        if current then
-            TurretDropdown:SetValue(current) -- restaura seleção
+        local options = GetTurretSeats()
+        
+        -- Só atualiza se houver mudança na lista
+        local changed = false
+        if #options ~= #TurretDropdown.Options then
+            changed = true
+        else
+            for i = 1, #options do
+                if options[i] ~= TurretDropdown.Options[i] then
+                    changed = true
+                    break
+                end
+            end
+        end
+        
+        if changed then
+            TurretDropdown:Refresh(options)
+            if current and table.find(options, current) then
+                TurretDropdown:SetValue(current)
+            end
         end
     end
 end)
