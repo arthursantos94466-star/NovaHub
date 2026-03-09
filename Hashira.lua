@@ -30,6 +30,7 @@ local TeleportService = game:GetService("TeleportService")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
 
 local function GetCharacter()
 return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -169,7 +170,7 @@ end
 })
 
 ---------------------------------------------------
--- TELEPORT PLAYER (SISTEMA CORRIGIDO)
+-- TELEPORT PLAYER
 ---------------------------------------------------
 
 local SelectedPlayerName
@@ -215,6 +216,182 @@ local thrp=target.Character:FindFirstChild("HumanoidRootPart")
 if hrp and thrp then
 hrp.CFrame=thrp.CFrame+Vector3.new(0,3,0)
 end
+
+end
+})
+
+---------------------------------------------------
+-- TELEPORT TOOL
+---------------------------------------------------
+
+TeleportTab:CreateButton({
+Name="Teleport Tool",
+Callback=function()
+
+local tool=Instance.new("Tool")
+tool.Name="Teleport Tool"
+tool.RequiresHandle=false
+tool.Parent=LocalPlayer.Backpack
+
+tool.Activated:Connect(function()
+
+local mouse=LocalPlayer:GetMouse()
+local char=GetCharacter()
+local hrp=char:FindFirstChild("HumanoidRootPart")
+
+if hrp and mouse.Hit then
+hrp.CFrame=CFrame.new(mouse.Hit.Position+Vector3.new(0,5,0))
+end
+
+end)
+
+end
+})
+
+---------------------------------------------------
+-- GO TO SKY
+---------------------------------------------------
+
+TeleportTab:CreateButton({
+Name="Go To Sky",
+Callback=function()
+
+local hrp=GetCharacter():FindFirstChild("HumanoidRootPart")
+
+if hrp then
+hrp.CFrame=hrp.CFrame+Vector3.new(0,300,0)
+end
+
+end
+})
+
+---------------------------------------------------
+-- CREATE PLATFORM
+---------------------------------------------------
+
+TeleportTab:CreateButton({
+Name="Create Platform",
+Callback=function()
+
+local hrp=GetCharacter():FindFirstChild("HumanoidRootPart")
+
+if hrp then
+
+local part=Instance.new("Part")
+part.Size=Vector3.new(20,1,20)
+part.Anchored=true
+part.Position=hrp.Position-Vector3.new(0,3,0)
+part.Parent=workspace
+
+end
+
+end
+})
+
+---------------------------------------------------
+-- SPECTATE PLAYER
+---------------------------------------------------
+
+ExtraTab:CreateButton({
+Name="Open Spectate",
+Callback=function()
+
+local screenGui=Instance.new("ScreenGui")
+screenGui.Parent=LocalPlayer.PlayerGui
+
+local toggleButton=Instance.new("TextButton",screenGui)
+toggleButton.Size=UDim2.new(0,120,0,40)
+toggleButton.Position=UDim2.new(0,10,0,10)
+toggleButton.Text="Spectate: OFF"
+
+local nextButton=Instance.new("TextButton",screenGui)
+nextButton.Size=UDim2.new(0,60,0,40)
+nextButton.Position=UDim2.new(0,140,0,10)
+nextButton.Text="Next"
+
+local prevButton=Instance.new("TextButton",screenGui)
+prevButton.Size=UDim2.new(0,60,0,40)
+prevButton.Position=UDim2.new(0,210,0,10)
+prevButton.Text="Prev"
+
+local playerLabel=Instance.new("TextLabel",screenGui)
+playerLabel.Size=UDim2.new(0,200,0,30)
+playerLabel.Position=UDim2.new(0,10,0,60)
+playerLabel.Text="Spectating: None"
+playerLabel.BackgroundTransparency=1
+playerLabel.TextColor3=Color3.new(1,1,1)
+
+local spectateEnabled=false
+local spectateIndex=1
+local playerList={}
+
+local function updatePlayerList()
+playerList={}
+for _,player in pairs(Players:GetPlayers()) do
+if player~=LocalPlayer then
+table.insert(playerList,player)
+end
+end
+end
+
+local function setCamera()
+
+if spectateEnabled and #playerList>0 then
+
+local target=playerList[spectateIndex]
+
+if target.Character and target.Character:FindFirstChild("Humanoid") then
+Workspace.CurrentCamera.CameraSubject=target.Character.Humanoid
+end
+
+else
+
+if LocalPlayer.Character then
+Workspace.CurrentCamera.CameraSubject=LocalPlayer.Character:FindFirstChild("Humanoid")
+end
+
+end
+
+end
+
+toggleButton.MouseButton1Click:Connect(function()
+
+spectateEnabled=not spectateEnabled
+
+if spectateEnabled then
+toggleButton.Text="Spectate: ON"
+updatePlayerList()
+setCamera()
+else
+toggleButton.Text="Spectate: OFF"
+setCamera()
+end
+
+end)
+
+nextButton.MouseButton1Click:Connect(function()
+
+if #playerList>0 then
+spectateIndex=spectateIndex+1
+if spectateIndex>#playerList then
+spectateIndex=1
+end
+setCamera()
+end
+
+end)
+
+prevButton.MouseButton1Click:Connect(function()
+
+if #playerList>0 then
+spectateIndex=spectateIndex-1
+if spectateIndex<1 then
+spectateIndex=#playerList
+end
+setCamera()
+end
+
+end)
 
 end
 })
