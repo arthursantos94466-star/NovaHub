@@ -75,54 +75,53 @@ end
 -- WHEEL AIMBOT
 ---------------------------------------------------
 
-local WheelAimbot=false
+local WheelAimbot = false
 
 CombatTab:CreateToggle({
-Name="Wheel Aimbot",
-CurrentValue=false,
-Callback=function(v)
-WheelAimbot=v
+Name = "Wheel Aimbot",
+CurrentValue = false,
+Callback = function(v)
+
+WheelAimbot = v
+
 end
 })
 
-local function GetClosestWheel()
-
-local closest=nil
-local dist=math.huge
-local wheels={"FL","FR","RL","RR"}
-
-for _,v in pairs(workspace:GetDescendants()) do
-for _,w in pairs(wheels) do
-if v.Name==w then
-
-local hrp=GetCharacter():FindFirstChild("HumanoidRootPart")
-
-if hrp then
-local magnitude=(hrp.Position-v.Position).Magnitude
-
-if magnitude<dist then
-dist=magnitude
-closest=v
-end
-end
-
-end
-end
-end
-
-return closest
-end
+local wheels = {"FL","FR","RL","RR"}
 
 RunService.RenderStepped:Connect(function()
 
-if WheelAimbot then
+if not WheelAimbot then return end
 
-local wheel=GetClosestWheel()
+local hrp = GetCharacter():FindFirstChild("HumanoidRootPart")
+if not hrp then return end
 
-if wheel then
-local camera=workspace.CurrentCamera
-camera.CFrame=CFrame.new(camera.CFrame.Position,wheel.Position)
+local closestWheel
+local distance = math.huge
+
+for _,v in pairs(workspace:GetDescendants()) do
+
+    for _,wheel in pairs(wheels) do
+
+        if v.Name == wheel then
+
+            local dist = (hrp.Position - v.Position).Magnitude
+
+            if dist < distance then
+                distance = dist
+                closestWheel = v
+            end
+
+        end
+
+    end
+
 end
+
+if closestWheel then
+
+    workspace.CurrentCamera.CFrame =
+        CFrame.new(workspace.CurrentCamera.CFrame.Position, closestWheel.Position)
 
 end
 
@@ -281,58 +280,67 @@ end
 -- TELEPORT CAR
 ---------------------------------------------------
 
-local SelectedCar
+local SelectedCarName
 
 local function GetCars()
 
-local cars={}
+local cars = {}
 
 for _,v in pairs(workspace:GetDescendants()) do
-if v.Name=="Volante.001" then
-local car=v.Parent
-if car and not table.find(cars,car.Name) then
-table.insert(cars,car.Name)
-end
-end
+    if v.Name == "Volante.001" then
+
+        local car = v.Parent
+
+        if car and not table.find(cars,car.Name) then
+            table.insert(cars,car.Name)
+        end
+
+    end
 end
 
 return cars
 end
 
-local carDropdown=TeleportTab:CreateDropdown({
-Name="Car List",
-Options=GetCars(),
-CurrentOption=nil,
-Callback=function(v)
-SelectedCar=v[1]
+local CarDropdown = TeleportTab:CreateDropdown({
+Name = "Car List",
+Options = GetCars(),
+CurrentOption = nil,
+Callback = function(v)
+
+SelectedCarName = v[1]
+
 end
 })
 
-TeleportTab:CreateButton({
-Name="Refresh Car List",
-Callback=function()
-carDropdown:Refresh(GetCars())
+-- Atualiza automaticamente
+task.spawn(function()
+
+while task.wait(3) do
+    CarDropdown:Refresh(GetCars())
 end
-})
+
+end)
 
 TeleportTab:CreateButton({
-Name="Teleport To Car",
-Callback=function()
+Name = "Teleport To Car",
+Callback = function()
 
-if not SelectedCar then return end
+if not SelectedCarName then return end
 
 for _,v in pairs(workspace:GetDescendants()) do
 
-if v.Name=="Volante.001" and v.Parent and v.Parent.Name==SelectedCar then
+    if v.Name == "Volante.001" and v.Parent and v.Parent.Name == SelectedCarName then
 
-local hrp=GetCharacter():FindFirstChild("HumanoidRootPart")
+        local hrp = GetCharacter():FindFirstChild("HumanoidRootPart")
 
-if hrp then
-hrp.CFrame=v.CFrame+Vector3.new(0,3,0)
-end
+        if hrp then
+            hrp.CFrame = v.CFrame + Vector3.new(0,3,0)
+        end
 
-break
-end
+        break
+
+    end
+
 end
 
 end
