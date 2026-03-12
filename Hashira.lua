@@ -313,55 +313,71 @@ end)
 -- VISUAL
 ---------------------------------------------------
 
--- Variáveis globais
-getgenv().NameESP = false
-getgenv().ToolESP = false
-getgenv().HealthESP = false
-getgenv().SkeletonESP = false
-getgenv().TracerESP = false
+-- Garantir tabela
+getgenv().EspSettings = getgenv().EspSettings or {}
 
+EspSettings.Names = EspSettings.Names or {Enabled = false}
+EspSettings.Tracers = EspSettings.Tracers or {Enabled = false}
+EspSettings.Skeletons = EspSettings.Skeletons or {Enabled = false}
+EspSettings.HealthBars = EspSettings.HealthBars or {Enabled = false}
+
+-------------------------------------------------
 -- ESP Nome
+-------------------------------------------------
+
 VisualTab:CreateToggle({
     Name = "ESP Nome",
-    CurrentValue = getgenv().NameESP,
+    CurrentValue = EspSettings.Names.Enabled,
     Callback = function(Value)
-        getgenv().NameESP = Value
+        EspSettings.Names.Enabled = Value
     end
 })
 
+-------------------------------------------------
 -- ESP Tool Equipada
+-------------------------------------------------
+
 VisualTab:CreateToggle({
     Name = "ESP Tool Equipada",
-    CurrentValue = getgenv().ToolESP,
+    CurrentValue = false,
     Callback = function(Value)
-        getgenv().ToolESP = Value
+        EspSettings.Names.ShowTool = Value
     end
 })
 
+-------------------------------------------------
 -- ESP Health Bar
+-------------------------------------------------
+
 VisualTab:CreateToggle({
     Name = "ESP Health Bar",
-    CurrentValue = getgenv().HealthESP,
+    CurrentValue = EspSettings.HealthBars.Enabled,
     Callback = function(Value)
-        getgenv().HealthESP = Value
+        EspSettings.HealthBars.Enabled = Value
     end
 })
 
+-------------------------------------------------
 -- ESP Esqueleto
+-------------------------------------------------
+
 VisualTab:CreateToggle({
     Name = "ESP Esqueleto",
-    CurrentValue = getgenv().SkeletonESP,
+    CurrentValue = EspSettings.Skeletons.Enabled,
     Callback = function(Value)
-        getgenv().SkeletonESP = Value
+        EspSettings.Skeletons.Enabled = Value
     end
 })
 
+-------------------------------------------------
 -- Tracer
+-------------------------------------------------
+
 VisualTab:CreateToggle({
     Name = "Tracer",
-    CurrentValue = getgenv().TracerESP,
+    CurrentValue = EspSettings.Tracers.Enabled,
     Callback = function(Value)
-        getgenv().TracerESP = Value
+        EspSettings.Tracers.Enabled = Value
     end
 })
 
