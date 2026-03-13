@@ -228,33 +228,38 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------
--- AIMBOT PLAYER EM TURRETSEAT
+-- TURRET AIMBOT PRO
 ---------------------------------------------------
 
-local TurretAimbot = false
-local camera = workspace.CurrentCamera
+local TurretAimbot=false
+local TeamCheck=true
+local Smoothness=0.15
 
-local function GetTurretTarget()
+local function GetTarget()
 
-    local closest = nil
-    local dist = math.huge
+    local closest=nil
+    local dist=math.huge
 
-    for _,player in pairs(Players:GetPlayers()) do
+    for _,p in pairs(Players:GetPlayers()) do
 
-        if player ~= LocalPlayer and player.Character then
+        if p~=LocalPlayer and p.Character then
 
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            local head = player.Character:FindFirstChild("Head")
+            if TeamCheck and p.Team==LocalPlayer.Team then
+                continue
+            end
+
+            local hum=p.Character:FindFirstChildOfClass("Humanoid")
+            local head=p.Character:FindFirstChild("Head")
 
             if hum and head then
 
-                if hum.Sit and hum.SeatPart and hum.SeatPart.Name == "TurretSeat" then
+                if hum.Sit and hum.SeatPart and hum.SeatPart.Name=="TurretSeat" then
 
-                    local distance = (camera.CFrame.Position - head.Position).Magnitude
+                    local d=(Camera.CFrame.Position-head.Position).Magnitude
 
-                    if distance < dist then
-                        dist = distance
-                        closest = head
+                    if d<dist then
+                        dist=d
+                        closest=head
                     end
 
                 end
@@ -266,26 +271,29 @@ local function GetTurretTarget()
     end
 
     return closest
-
 end
+
 
 RunService.RenderStepped:Connect(function()
 
     if not TurretAimbot then return end
 
-    local target = GetTurretTarget()
+    local target=GetTarget()
+    if not target then return end
 
-    if target then
-        camera.CFrame = CFrame.new(camera.CFrame.Position,target.Position)
-    end
+    local camPos=Camera.CFrame.Position
+    local aimCF=CFrame.new(camPos,target.Position)
+
+    Camera.CFrame=Camera.CFrame:Lerp(aimCF,Smoothness)
 
 end)
 
+
 CombatTab:CreateToggle({
-Name = "TurretSeat Aimbot",
-CurrentValue = false,
-Callback = function(v)
-TurretAimbot = v
+Name="Turret Aimbot PRO",
+CurrentValue=false,
+Callback=function(v)
+TurretAimbot=v
 end
 })
 
@@ -470,115 +478,126 @@ end
 })
 
 ---------------------------------------------------
--- ESP PLAYER TURRETSEAT
+-- TURRET ESP PRO
 ---------------------------------------------------
 
 local TurretESP = false
+local Camera = workspace.CurrentCamera
 
-local function UpdateTurretESP()
+local DrawingLines = {}
+local BillboardCache = {}
 
-    for _,player in pairs(Players:GetPlayers()) do
+local function CreateBillboard(part,text,color)
 
-        if player ~= LocalPlayer and player.Character then
+    local bill = Instance.new("BillboardGui")
+    bill.Size = UDim2.new(0,120,0,40)
+    bill.AlwaysOnTop = true
+    bill.Adornee = part
+    bill.StudsOffset = Vector3.new(0,3,0)
 
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            local highlight = player.Character:FindFirstChild("TurretESP")
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = color
+    label.TextStrokeTransparency = 0
+    label.TextScaled = true
+    label.Font = Enum.Font.SourceSansBold
+    label.Parent = bill
 
-            if hum and hum.Sit and hum.SeatPart and hum.SeatPart.Name == "TurretSeat" then
+    bill.Parent = part
 
-                if TurretESP then
+    return bill
 
-                    if not highlight then
+end
 
-                        highlight = Instance.new("Highlight")
-                        highlight.Name = "TurretESP"
-                        highlight.FillColor = Color3.fromRGB(255,0,0)
-                        highlight.OutlineColor = Color3.fromRGB(255,255,255)
-                        highlight.FillTransparency = 0.5
-                        highlight.Parent = player.Character
 
-                    end
+local function GetTurrets()
 
-                end
+    local list = {}
 
-            else
+    for _,v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Seat") or v:IsA("VehicleSeat") then
+            if v.Name == "TurretSeat" then
+                table.insert(list,v)
+            end
+        end
+    end
 
-                if highlight then
-                    highlight:Destroy()
-                end
+    return list
+end
 
+
+RunService.RenderStepped:Connect(function()
+
+    if not TurretESP then
+        for _,l in pairs(DrawingLines) do
+            l.Visible=false
+        end
+        return
+    end
+
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local turrets = GetTurrets()
+
+    for i,turret in pairs(turrets) do
+
+        local color = Color3.fromRGB(255,0,0)
+        local text = "TORRE"
+
+        if turret.Occupant then
+            color = Color3.fromRGB(0,255,0)
+            text = "TORRE (USO)"
+        end
+
+        if not BillboardCache[turret] then
+            BillboardCache[turret] = CreateBillboard(turret,text,color)
+        end
+
+        local bill = BillboardCache[turret]
+        bill.TextLabel.Text = text
+        bill.TextLabel.TextColor3 = color
+
+        local pos,onscreen = Camera:WorldToViewportPoint(turret.Position)
+
+        if onscreen then
+
+            if not DrawingLines[i] then
+                local line = Drawing.new("Line")
+                line.Thickness = 2
+                line.Color = Color3.fromRGB(255,0,0)
+                DrawingLines[i] = line
+            end
+
+            local mypos = Camera:WorldToViewportPoint(hrp.Position)
+
+            DrawingLines[i].From = Vector2.new(mypos.X,mypos.Y)
+            DrawingLines[i].To = Vector2.new(pos.X,pos.Y)
+            DrawingLines[i].Visible = true
+
+        else
+
+            if DrawingLines[i] then
+                DrawingLines[i].Visible = false
             end
 
         end
 
     end
 
-end
-
-RunService.RenderStepped:Connect(function()
-
-    if TurretESP then
-        UpdateTurretESP()
-    end
-
 end)
+
 
 VisualTab:CreateToggle({
-Name = "Turret Player ESP",
-CurrentValue = false,
-Callback = function(v)
-TurretESP = v
-end
-})
-
----------------------------------------------------
--- TELEPORT PLAYER
----------------------------------------------------
-
-local SelectedPlayerName
-
-local function GetPlayers()
-local t={}
-for _,p in ipairs(Players:GetPlayers()) do
-if p~=LocalPlayer then
-table.insert(t,p.Name)
-end
-end
-return t
-end
-
-local dropdown=TeleportTab:CreateDropdown({
-Name="Player List",
-Options=GetPlayers(),
-CurrentOption=nil,
+Name="Turret ESP PRO",
+CurrentValue=false,
 Callback=function(v)
-SelectedPlayerName=v[1]
-end
-})
-
-task.spawn(function()
-while task.wait(3) do
-dropdown:Refresh(GetPlayers())
-end
-end)
-
-TeleportTab:CreateButton({
-Name="Teleport To Player",
-Callback=function()
-
-if not SelectedPlayerName then return end
-
-local target=Players:FindFirstChild(SelectedPlayerName)
-if not target then return end
-if not LocalPlayer.Character or not target.Character then return end
-
-local hrp=LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-local thrp=target.Character:FindFirstChild("HumanoidRootPart")
-
-if hrp and thrp then
-hrp.CFrame=thrp.CFrame+Vector3.new(0,3,0)
-end
-
+TurretESP=v
 end
 })
 
