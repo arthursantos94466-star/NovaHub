@@ -228,36 +228,32 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------
--- AIMBOT TURRETSEAT
+-- AIMBOT PLAYER EM TURRETSEAT
 ---------------------------------------------------
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
+local TurretAimbot = false
+local camera = workspace.CurrentCamera
 
-local AimbotEnabled = false
-
-local function getTurretPlayer()
+local function GetTurretTarget()
 
     local closest = nil
-    local distance = math.huge
+    local dist = math.huge
 
     for _,player in pairs(Players:GetPlayers()) do
 
         if player ~= LocalPlayer and player.Character then
 
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
             local head = player.Character:FindFirstChild("Head")
 
-            if humanoid and head then
+            if hum and head then
 
-                if humanoid.Sit and humanoid.SeatPart and humanoid.SeatPart.Name == "TurretSeat" then
+                if hum.Sit and hum.SeatPart and hum.SeatPart.Name == "TurretSeat" then
 
-                    local dist = (head.Position - Camera.CFrame.Position).Magnitude
+                    local distance = (camera.CFrame.Position - head.Position).Magnitude
 
-                    if dist < distance then
-                        distance = dist
+                    if distance < dist then
+                        dist = distance
                         closest = head
                     end
 
@@ -273,26 +269,24 @@ local function getTurretPlayer()
 
 end
 
-
 RunService.RenderStepped:Connect(function()
 
-    if not AimbotEnabled then return end
+    if not TurretAimbot then return end
 
-    local target = getTurretPlayer()
+    local target = GetTurretTarget()
 
     if target then
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+        camera.CFrame = CFrame.new(camera.CFrame.Position,target.Position)
     end
 
 end)
 
-
 CombatTab:CreateToggle({
-    Name = "Aimbot TurretSeat",
-    CurrentValue = false,
-    Callback = function(Value)
-        AimbotEnabled = Value
-    end
+Name = "TurretSeat Aimbot",
+CurrentValue = false,
+Callback = function(v)
+TurretAimbot = v
+end
 })
 
 ---------------------------------------------------
@@ -476,35 +470,33 @@ end
 })
 
 ---------------------------------------------------
--- ESP PLAYER EM TURRETSEAT
+-- ESP PLAYER TURRETSEAT
 ---------------------------------------------------
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+local TurretESP = false
 
-local TurretESPEnabled = false
-
-local function updateTurretESP()
+local function UpdateTurretESP()
 
     for _,player in pairs(Players:GetPlayers()) do
 
         if player ~= LocalPlayer and player.Character then
 
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
             local highlight = player.Character:FindFirstChild("TurretESP")
 
-            if humanoid and humanoid.Sit and humanoid.SeatPart and humanoid.SeatPart.Name == "TurretSeat" then
+            if hum and hum.Sit and hum.SeatPart and hum.SeatPart.Name == "TurretSeat" then
 
-                if TurretESPEnabled then
+                if TurretESP then
 
                     if not highlight then
+
                         highlight = Instance.new("Highlight")
                         highlight.Name = "TurretESP"
                         highlight.FillColor = Color3.fromRGB(255,0,0)
                         highlight.OutlineColor = Color3.fromRGB(255,255,255)
                         highlight.FillTransparency = 0.5
                         highlight.Parent = player.Character
+
                     end
 
                 end
@@ -523,20 +515,20 @@ local function updateTurretESP()
 
 end
 
-
 RunService.RenderStepped:Connect(function()
-    if TurretESPEnabled then
-        updateTurretESP()
+
+    if TurretESP then
+        UpdateTurretESP()
     end
+
 end)
 
-
 VisualTab:CreateToggle({
-    Name = "Turret Player ESP",
-    CurrentValue = false,
-    Callback = function(Value)
-        TurretESPEnabled = Value
-    end
+Name = "Turret Player ESP",
+CurrentValue = false,
+Callback = function(v)
+TurretESP = v
+end
 })
 
 ---------------------------------------------------
