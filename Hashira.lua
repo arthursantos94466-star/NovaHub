@@ -228,6 +228,74 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------
+-- AIMBOT TURRETSEAT
+---------------------------------------------------
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local AimbotEnabled = false
+
+local function getTurretPlayer()
+
+    local closest = nil
+    local distance = math.huge
+
+    for _,player in pairs(Players:GetPlayers()) do
+
+        if player ~= LocalPlayer and player.Character then
+
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            local head = player.Character:FindFirstChild("Head")
+
+            if humanoid and head then
+
+                if humanoid.Sit and humanoid.SeatPart and humanoid.SeatPart.Name == "TurretSeat" then
+
+                    local dist = (head.Position - Camera.CFrame.Position).Magnitude
+
+                    if dist < distance then
+                        distance = dist
+                        closest = head
+                    end
+
+                end
+
+            end
+
+        end
+
+    end
+
+    return closest
+
+end
+
+
+RunService.RenderStepped:Connect(function()
+
+    if not AimbotEnabled then return end
+
+    local target = getTurretPlayer()
+
+    if target then
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+    end
+
+end)
+
+
+CombatTab:CreateToggle({
+    Name = "Aimbot TurretSeat",
+    CurrentValue = false,
+    Callback = function(Value)
+        AimbotEnabled = Value
+    end
+})
+
+---------------------------------------------------
 -- MOVEMENT
 ---------------------------------------------------
 
@@ -405,6 +473,70 @@ Lighting.ExposureCompensation = 0
 end
 
 end
+})
+
+---------------------------------------------------
+-- ESP PLAYER EM TURRETSEAT
+---------------------------------------------------
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local TurretESPEnabled = false
+
+local function updateTurretESP()
+
+    for _,player in pairs(Players:GetPlayers()) do
+
+        if player ~= LocalPlayer and player.Character then
+
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            local highlight = player.Character:FindFirstChild("TurretESP")
+
+            if humanoid and humanoid.Sit and humanoid.SeatPart and humanoid.SeatPart.Name == "TurretSeat" then
+
+                if TurretESPEnabled then
+
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "TurretESP"
+                        highlight.FillColor = Color3.fromRGB(255,0,0)
+                        highlight.OutlineColor = Color3.fromRGB(255,255,255)
+                        highlight.FillTransparency = 0.5
+                        highlight.Parent = player.Character
+                    end
+
+                end
+
+            else
+
+                if highlight then
+                    highlight:Destroy()
+                end
+
+            end
+
+        end
+
+    end
+
+end
+
+
+RunService.RenderStepped:Connect(function()
+    if TurretESPEnabled then
+        updateTurretESP()
+    end
+end)
+
+
+VisualTab:CreateToggle({
+    Name = "Turret Player ESP",
+    CurrentValue = false,
+    Callback = function(Value)
+        TurretESPEnabled = Value
+    end
 })
 
 ---------------------------------------------------
