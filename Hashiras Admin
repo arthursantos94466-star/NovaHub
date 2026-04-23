@@ -1,0 +1,17 @@
+return {
+    ["Config"] = {
+        ["Version"] = "3.1.0",
+        ["Maintenance"] = false,
+    },
+    ["Users"] = {
+        ["2980742903"] = {
+            ["Nick"] = "rpgggig",
+            ["Display"] = "yFrost",
+            ["Status"] = "Active", -- Active | Suspended | Banned
+            ["Level"] = "Owner",
+            ["Expires"] = "Never",
+            ["ResetRequired"] = false
+        },
+        -- Novos usuários entram abaixo
+    }
+}
