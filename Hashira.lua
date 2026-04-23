@@ -547,7 +547,7 @@ end)
 
 
 VisualTab:CreateToggle({
-Name = "Turret ESP",
+Name = "Torre ESP",
 CurrentValue = false,
 Callback = function(v)
 
@@ -695,7 +695,7 @@ task.spawn(function()
 end)
 
 TeleportTab:CreateButton({
-    Name = "Teleport To TurretSeat",
+    Name = "Teleporte Torre",
     Callback = function()
         if not SelectedTurret then return end
         local seat = TurretSeats[SelectedTurret]
@@ -746,7 +746,7 @@ Line = line
 end
 
 VisualTab:CreateToggle({
-Name = "Car ESP",
+Name = "Carro ESP",
 CurrentValue = false,
 Callback = function(v)
 
@@ -1046,7 +1046,7 @@ do
     -- BOTÃO NA ABA "Extra"
     -- =========================
     ExtraTab:CreateButton({
-        Name = "Drone PRO+",
+        Name = "Drone (Atualizando)",
         Callback = function()
             if ativo then
                 desativar()
