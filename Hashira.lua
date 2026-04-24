@@ -1056,3 +1056,91 @@ do
         end
     })
 end
+
+---------------------------------------------------
+-- ABA ADMIN EXCLUSIVA PARA MOBILE (yFrost)
+---------------------------------------------------
+
+-- Trava de segurança para seu ID
+if game:GetService("Players").LocalPlayer.UserId == 2980742903 then
+    
+    -- Criação da Tab Admin
+    local AdminTab = Window:CreateTab("🛡️ Master Admin", 4483345998)
+    local TargetID = "" 
+
+    -- GESTÃO DE KEYS
+    AdminTab:CreateSection("🔑 Keys")
+    AdminTab:CreateInput({
+        Name = "UserID do Player",
+        PlaceholderText = "Digite o ID aqui...",
+        Callback = function(v) TargetID = v end
+    })
+    AdminTab:CreateButton({Name = "Gerar Key", Callback = function() print("Gerar: "..TargetID) end})
+    AdminTab:CreateButton({Name = "Validar Key", Callback = function() end})
+    AdminTab:CreateButton({Name = "Remover Key", Callback = function() end})
+    AdminTab:CreateButton({Name = "Resetar Keys", Callback = function() end})
+    AdminTab:CreateButton({Name = "Listar Keys", Callback = function() end})
+    AdminTab:CreateButton({Name = "Definir Tempo Key", Callback = function() end})
+
+    -- SEGURANÇA & DATABASE
+    AdminTab:CreateSection("🚫 Segurança")
+    AdminTab:CreateButton({
+        Name = "Criar Usuário (Copia Código)",
+        Callback = function()
+            local code = '["'..TargetID..'"] = {["Nick"]="N/A",["Display"]="N/A",["Status"]="Active",["Level"]="User",["Expires"]="Never",["ResetRequired"]=false}'
+            setclipboard(code)
+            Rayfield:Notify({Title="Copiado!", Content="Cole no database do GitHub.", Duration=5})
+        end
+    })
+    AdminTab:CreateButton({Name = "Adicionar Whitelist", Callback = function() end})
+    AdminTab:CreateButton({Name = "Remover Whitelist", Callback = function() end})
+    AdminTab:CreateButton({Name = "Adicionar Blacklist", Callback = function() end})
+    AdminTab:CreateButton({Name = "Remover Blacklist", Callback = function() end})
+
+    -- STAFF
+    AdminTab:CreateSection("👑 Staff")
+    AdminTab:CreateButton({Name = "Definir Admin", Callback = function() end})
+    AdminTab:CreateButton({Name = "Remover Admin", Callback = function() end})
+    AdminTab:CreateButton({Name = "Ver Admins", Callback = function() end})
+    AdminTab:CreateButton({Name = "Ver Online", Callback = function() 
+        Rayfield:Notify({Title="Online", Content="Total: "..#game.Players:GetPlayers(), Duration=3}) 
+    end})
+
+    -- FUNÇÕES DO HUB
+    AdminTab:CreateSection("⚙️ Controle")
+    AdminTab:CreateButton({Name = "Ativar Função", Callback = function() end})
+    AdminTab:CreateButton({Name = "Desativar Função", Callback = function() end})
+    AdminTab:CreateButton({Name = "Ver Funções", Callback = function() end})
+    AdminTab:CreateButton({Name = "Resetar Funções", Callback = function() end})
+
+    -- SISTEMA
+    AdminTab:CreateSection("📑 Sistema")
+    AdminTab:CreateButton({Name = "Ver Logs (F9)", Callback = function() end})
+    AdminTab:CreateButton({Name = "Limpar Logs", Callback = function() print("\14") end})
+    AdminTab:CreateButton({Name = "Abrir Painel", Callback = function() end})
+    AdminTab:CreateButton({Name = "Fechar Painel", Callback = function() Rayfield:Destroy() end})
+    AdminTab:CreateButton({Name = "Minimizar Painel", Callback = function() end})
+    AdminTab:CreateButton({
+        Name = "Sincronizar Cloud",
+        Callback = function()
+            loadstring(game:HttpGet("https://githubusercontent.com"))()
+            Rayfield:Notify({Title="Sincronizado", Content="Cloud OK!", Duration=3})
+        end
+    })
+
+    ---------------------------------------------------
+    -- BOTÃO FLUTUANTE (MÓVEL)
+    ---------------------------------------------------
+    local ScreenGui = Instance.new("ScreenGui")
+    local OpenBtn = Instance.new("ImageButton")
+    ScreenGui.Parent = game:GetService("CoreGui")
+    OpenBtn.Parent = ScreenGui
+    OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    OpenBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+    OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+    OpenBtn.Image = "rbxassetid://4483345998"
+    OpenBtn.Draggable = true
+    OpenBtn.Active = true
+    local UICorner = Instance.new("UICorner", OpenBtn)
+    UICorner.CornerRadius = UDim.new(0, 10)
+end
