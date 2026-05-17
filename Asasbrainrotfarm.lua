@@ -18,6 +18,7 @@ local selectedFolders = {
 	Celestial = true,
 	Cosmic = true,
 	God = true
+}
 
 -- ENTREGA
 local deliverPosition = CFrame.new(
@@ -213,6 +214,7 @@ local folderNames = {
 	"Cosmic",
 	"God"
 	}
+
 for _, folderName in pairs(folderNames) do
 
 	local button = Instance.new("TextButton")
