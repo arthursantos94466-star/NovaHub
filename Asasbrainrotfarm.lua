@@ -17,7 +17,6 @@ local selectedFolders = {
 	Secret = true,
 	Celestial = true,
 	Cosmic = true,
-	God = true
 }
 
 -- ENTREGA
@@ -212,7 +211,6 @@ local folderNames = {
 	"Secret",
 	"Celestial",
 	"Cosmic",
-	"God"
 	}
 
 for _, folderName in pairs(folderNames) do
@@ -588,6 +586,15 @@ local function startFarm()
 
 			status.Text = "Status: ON"
 
+			local character =
+				player.Character
+				or player.CharacterAdded:Wait()
+
+			local hrp =
+				character:WaitForChild(
+					"HumanoidRootPart"
+				)
+
 			local spawners =
 				workspace:FindFirstChild(
 					"ItemSpawners"
@@ -595,15 +602,42 @@ local function startFarm()
 
 			if spawners then
 
-				for _, rarityFolder in pairs(
-					spawners:GetChildren()
+				for _, folderName in pairs(
+					folderNames
 				) do
 
-					if selectedFolders[
-						rarityFolder.Name
+					if not autoFarm then
+						break
+					end
+
+					local rarityFolder =
+						spawners:FindFirstChild(
+							folderName
+						)
+
+					if rarityFolder
+					and selectedFolders[
+						folderName
 					] then
 
-						for _, brainrot in pairs(
+						-- CARREGA ÁREA
+						local folderPart =
+							rarityFolder:
+							FindFirstChildWhichIsA(
+								"BasePart",
+								true
+							)
+
+						if folderPart then
+
+							hrp.CFrame =
+								folderPart.CFrame
+								+ Vector3.new(0,5,0)
+
+							task.wait(0.45)
+						end
+
+						for _, brainrot in ipairs(
 							rarityFolder:GetChildren()
 						) do
 
@@ -612,13 +646,19 @@ local function startFarm()
 							end
 
 							if brainrot:IsA("Model") then
-								grabBrainrot(brainrot)
+
+								grabBrainrot(
+									brainrot
+								)
+
+								task.wait(0.05)
 							end
 						end
 					end
 				end
 			end
 
+			-- GOD SPAWN
 			local godSpawn =
 				workspace:FindFirstChild(
 					"GOD_BRAINROT_SPAWN"
@@ -626,8 +666,25 @@ local function startFarm()
 
 			if godSpawn then
 
-				for _, brainrot in pairs(
-					godSpawn:GetDescendants()
+				-- CARREGA GOD
+				local godPart =
+					godSpawn:
+					FindFirstChildWhichIsA(
+						"BasePart",
+						true
+					)
+
+				if godPart then
+
+					hrp.CFrame =
+						godPart.CFrame
+						+ Vector3.new(0,5,0)
+
+					task.wait(0.45)
+				end
+
+				for _, brainrot in ipairs(
+					godSpawn:GetChildren()
 				) do
 
 					if not autoFarm then
@@ -635,7 +692,12 @@ local function startFarm()
 					end
 
 					if brainrot:IsA("Model") then
-						grabBrainrot(brainrot)
+
+						grabBrainrot(
+							brainrot
+						)
+
+						task.wait(0.05)
 					end
 				end
 			end
