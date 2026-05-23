@@ -52,17 +52,17 @@ local ExtraTab = Window:CreateTab("Extra",4483362458)
 ---------------------------------------------------
 
 CombatTab:CreateButton({
-Name="Aimbot (External)",
-Callback=function()
-loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-universal-111551"))()
-end
+    Name = "Aimbot (External)", -- Corrigido: Removido o ponto e vírgula daqui
+    Callback = function()
+        loadstring(game:HttpGet("https://rawscripts.net"))()
+    end
 })
 
 CombatTab:CreateButton({
    Name = "Hitbox (V5 Universal)",
    Callback = function()
        -- Executa o script externo de Hitbox V5 Universal
-       loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Hitbox-V5-108660"))()
+       loadstring(game:HttpGet("https://rawscripts.net"))()
    end
 })
 
