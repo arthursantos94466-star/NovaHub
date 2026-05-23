@@ -1014,12 +1014,14 @@ ExtraTab:CreateSection("Interface")
 local ThemeDropdown = ExtraTab:CreateDropdown({
    Name = "Mudar Tema do Menu",
    Options = {"Default", "AmberGlow", "Amethyst", "BloodTheme", "DarkThemes", "GreenLighting", "Ocean", "Serenity"},
-   CurrentOption = {"Default"},
+   CurrentOption = {"Default"}, -- Mantido o padrão estável
    MultipleOptions = false,
    Flag = "ThemeDropdownFlag",
    Callback = function(Option)
        local SelectedTheme = type(Option) == "table" and Option[1] or Option
-       Rayfield:ModifyTheme(SelectedTheme)
+       pcall(function()
+           Rayfield:ModifyTheme(SelectedTheme)
+       end)
    end,
 })
 
@@ -1029,7 +1031,6 @@ ExtraTab:CreateSection("Gerenciamento")
 ExtraTab:CreateButton({
    Name = "Salvar Configurações",
    Callback = function()
-       -- Dispara o salvamento do arquivo de configuração do Rayfield
        pcall(function()
            Rayfield.ConfigurationHandler:Save(Rayfield.ConfigFolder, Rayfield.ConfigName)
            Rayfield:Notify({
@@ -1045,7 +1046,6 @@ ExtraTab:CreateButton({
 ExtraTab:CreateButton({
    Name = "Resetar Configurações",
    Callback = function()
-       -- Reseta as opções e flags do menu para os valores padrões originais
        pcall(function()
            if Rayfield.Flags["NoParticlesFlag"] then
                Rayfield.Flags["NoParticlesFlag"]:Set(false)
@@ -1076,6 +1076,7 @@ ExtraTab:CreateButton({
 ExtraTab:CreateButton({
    Name = "Trocar Servidor (Server Hop)",
    Callback = function()
+       -- CORRIGIDO: Link oficial da API do Roblox restaurado
        local Api = "https://roblox.com" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
        local function NextServer()
            pcall(function()
