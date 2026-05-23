@@ -380,16 +380,91 @@ end
 end)
 
 ---------------------------------------------------
--- VISUAL
+-- VISUAL + CORES (Rayfield Hub)
 ---------------------------------------------------
 
--- Garantir tabela
+-- Garantir e inicializar a tabela de configurações global (Config + Cores)
 getgenv().EspSettings = getgenv().EspSettings or {}
+getgenv().EspSettings.Names = getgenv().EspSettings.Names or {Enabled = false, Color = Color3.fromRGB(255, 255, 255)}
+getgenv().EspSettings.Tracers = getgenv().EspSettings.Tracers or {Enabled = false, Color = Color3.fromRGB(255, 255, 255)}
+getgenv().EspSettings.Skeletons = getgenv().EspSettings.Skeletons or {Enabled = false, Color = Color3.fromRGB(255, 255, 255)}
+getgenv().EspSettings.HealthBars = getgenv().EspSettings.HealthBars or {Enabled = false, Color = Color3.fromRGB(255, 255, 255)}
 
-EspSettings.Names = EspSettings.Names or {Enabled = false}
-EspSettings.Tracers = EspSettings.Tracers or {Enabled = false}
-EspSettings.Skeletons = EspSettings.Skeletons or {Enabled = false}
-EspSettings.HealthBars = EspSettings.HealthBars or {Enabled = false}
+-- ==================== NAMES (NOMES) ====================
+local NamesToggle = VisualTab:CreateToggle({
+   Name = "Esp Names (Nomes)",
+   CurrentValue = getgenv().EspSettings.Names.Enabled,
+   Flag = "EspNamesFlag",
+   Callback = function(Value)
+       getgenv().EspSettings.Names.Enabled = Value
+   end,
+})
+
+local NamesColor = VisualTab:CreateColorPicker({
+    Name = "Cor dos Nomes",
+    Color = getgenv().EspSettings.Names.Color,
+    Flag = "NamesColorFlag",
+    Callback = function(Value)
+        getgenv().EspSettings.Names.Color = Value
+    end,
+})
+
+-- ==================== TRACERS (LINHAS) ====================
+local TracersToggle = VisualTab:CreateToggle({
+   Name = "Esp Tracers (Linhas)",
+   CurrentValue = getgenv().EspSettings.Tracers.Enabled,
+   Flag = "EspTracersFlag",
+   Callback = function(Value)
+       getgenv().EspSettings.Tracers.Enabled = Value
+   end,
+})
+
+local TracersColor = VisualTab:CreateColorPicker({
+    Name = "Cor das Linhas",
+    Color = getgenv().EspSettings.Tracers.Color,
+    Flag = "TracersColorFlag",
+    Callback = function(Value)
+        getgenv().EspSettings.Tracers.Color = Value
+    end,
+})
+
+-- ==================== SKELETONS (ESQUELETOS) ====================
+local SkeletonsToggle = VisualTab:CreateToggle({
+   Name = "Esp Skeletons (Esqueletos)",
+   CurrentValue = getgenv().EspSettings.Skeletons.Enabled,
+   Flag = "EspSkeletonsFlag",
+   Callback = function(Value)
+       getgenv().EspSettings.Skeletons.Enabled = Value
+   end,
+})
+
+local SkeletonsColor = VisualTab:CreateColorPicker({
+    Name = "Cor dos Esqueletos",
+    Color = getgenv().EspSettings.Skeletons.Color,
+    Flag = "SkeletonsColorFlag",
+    Callback = function(Value)
+        getgenv().EspSettings.Skeletons.Color = Value
+    end,
+})
+
+-- ==================== HEALTH BARS (VIDA) ====================
+local HealthBarsToggle = VisualTab:CreateToggle({
+   Name = "Esp Health Bars (Vida)",
+   CurrentValue = getgenv().EspSettings.HealthBars.Enabled,
+   Flag = "EspHealthBarsFlag",
+   Callback = function(Value)
+       getgenv().EspSettings.HealthBars.Enabled = Value
+   end,
+})
+
+local HealthBarsColor = VisualTab:CreateColorPicker({
+    Name = "Cor da Barra de Vida",
+    Color = getgenv().EspSettings.HealthBars.Color,
+    Flag = "HealthBarsColorFlag",
+    Callback = function(Value)
+        getgenv().EspSettings.HealthBars.Color = Value
+    end,
+})
 
 ---------------------------------------------------
 -- FULLBRIGHT
@@ -833,314 +908,137 @@ end
 
 end)
 
----------------------------------------------------
--- EXTRA
----------------------------------------------------
-
-ExtraTab:CreateButton({
-    Name = "Lanterna",
-    Callback = function()
-        -- Executa o script externo da lanterna
-        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Universal-Flashlight-Script-122146"))()
-    end
-})
-
--- =========================
--- DRONE PRO+ NA ABA "Extra"
--- =========================
-do
-    local player = game.Players.LocalPlayer
-    local camera = workspace.CurrentCamera
-    local RunService = game:GetService("RunService")
-    local UIS = game:GetService("UserInputService")
-    local Players = game:GetService("Players")
-
-    local ativo = false
-    local dronePos = Vector3.new()
-    local lastPos = Vector3.new()
-    local speedReal = 0
-    local moveVector = Vector3.new()
-    local lookX, lookY = 0, 0
-    local zoom = 70
-    local gui, light
-
-    local color = Instance.new("ColorCorrectionEffect", game.Lighting)
-    color.Enabled = false
-
-    local function toggleNightVision()
-        color.Enabled = not color.Enabled
-        if color.Enabled then
-            color.TintColor = Color3.fromRGB(100,255,100)
-            color.Brightness = 0.2
-        end
-    end
-
-    local function iniciarDrone()
-        dronePos = player.Character.HumanoidRootPart.Position + Vector3.new(0,10,0)
-        lastPos = dronePos
-
-        light = Instance.new("PointLight")
-        light.Brightness = 2
-        light.Range = 25
-        light.Enabled = false
-        light.Parent = workspace.Terrain
-    end
-
-    local function criarGUI()
-        gui = Instance.new("ScreenGui", player.PlayerGui)
-
-        -- HUD TEXTO
-        local hud = Instance.new("TextLabel", gui)
-        hud.Size = UDim2.new(0,250,0,60)
-        hud.Position = UDim2.new(0.02,0,0.02,0)
-        hud.BackgroundTransparency = 1
-        hud.TextColor3 = Color3.new(1,1,1)
-        hud.TextXAlignment = Enum.TextXAlignment.Left
-
-        -- BOTÕES
-        local function btn(txt, pos)
-            local b = Instance.new("TextButton", gui)
-            b.Size = UDim2.new(0,60,0,60)
-            b.Position = pos
-            b.Text = txt
-            b.BackgroundColor3 = Color3.fromRGB(30,30,30)
-            return b
-        end
-
-        local up = btn("⬆", UDim2.new(0.85,0,0.6,0))
-        local down = btn("⬇", UDim2.new(0.85,0,0.75,0))
-        local lightBtn = btn("🔦", UDim2.new(0.85,0,0.88,0))
-        local nightBtn = btn("🌙", UDim2.new(0.75,0,0.88,0))
-
-        up.MouseButton1Down:Connect(function()
-            moveVector += Vector3.new(0,1,0)
-        end)
-        down.MouseButton1Down:Connect(function()
-            moveVector += Vector3.new(0,-1,0)
-        end)
-        lightBtn.MouseButton1Click:Connect(function()
-            if light then light.Enabled = not light.Enabled end
-        end)
-        nightBtn.MouseButton1Click:Connect(toggleNightVision)
-
-        -- JOYSTICK
-        local base = Instance.new("Frame", gui)
-        base.Size = UDim2.new(0,120,0,120)
-        base.Position = UDim2.new(0.1,0,0.7,0)
-        base.BackgroundColor3 = Color3.fromRGB(40,40,40)
-
-        local stick = Instance.new("Frame", base)
-        stick.Size = UDim2.new(0,50,0,50)
-        stick.Position = UDim2.new(0.5,-25,0.5,-25)
-
-        local dragging = false
-
-        base.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Touch then dragging = true end
-        end)
-        base.InputEnded:Connect(function(input)
-            dragging = false
-            stick.Position = UDim2.new(0.5,-25,0.5,-25)
-            moveVector = Vector3.new()
-        end)
-        base.InputChanged:Connect(function(input)
-            if dragging then
-                local pos = input.Position
-                local center = base.AbsolutePosition + base.AbsoluteSize/2
-                local offset = (pos - center)
-                local max = 40
-                local clamped = Vector2.new(
-                    math.clamp(offset.X,-max,max),
-                    math.clamp(offset.Y,-max,max)
-                )
-                stick.Position = UDim2.new(0.5,clamped.X-25,0.5,clamped.Y-25)
-                moveVector = Vector3.new(clamped.X/max,0,clamped.Y/max)
-            end
-        end)
-
-        -- =========================
-        -- MINI MAPA
-        -- =========================
-        local map = Instance.new("Frame", gui)
-        map.Size = UDim2.new(0,150,0,150)
-        map.Position = UDim2.new(0.8,0,0.02,0)
-        map.BackgroundColor3 = Color3.fromRGB(20,20,20)
-
-        local points = {}
-        for _,p in pairs(Players:GetPlayers()) do
-            if p ~= player then
-                local dot = Instance.new("Frame", map)
-                dot.Size = UDim2.new(0,5,0,5)
-                dot.BackgroundColor3 = Color3.new(1,0,0)
-                points[p] = dot
-            end
-        end
-        Players.PlayerAdded:Connect(function(p)
-            local dot = Instance.new("Frame", map)
-            dot.Size = UDim2.new(0,5,0,5)
-            dot.BackgroundColor3 = Color3.new(1,0,0)
-            points[p] = dot
-        end)
-
-        -- LOOP HUD + MAPA
-        RunService.RenderStepped:Connect(function(dt)
-            if ativo then
-                local altitude = math.floor(dronePos.Y)
-                speedReal = (dronePos - lastPos).Magnitude / dt
-                lastPos = dronePos
-                hud.Text = "ALT: "..altitude.." | SPD: "..math.floor(speedReal)
-
-                for p,dot in pairs(points) do
-                    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                        local pos = p.Character.HumanoidRootPart.Position
-                        local rel = (pos - dronePos)/10
-                        dot.Position = UDim2.new(0.5 + rel.X/100,0,0.5 + rel.Z/100,0)
-                    end
-                end
-            end
-        end)
-    end
-
-    -- =========================
-    -- ATIVAR / DESATIVAR
-    -- =========================
-    local function ativar()
-        ativo = true
-        iniciarDrone()
-        criarGUI()
-        camera.CameraType = Enum.CameraType.Scriptable
-    end
-
-    local function desativar()
-        ativo = false
-        camera.CameraType = Enum.CameraType.Custom
-        if gui then gui:Destroy() gui = nil end
-        if light then light:Destroy() light = nil end
-        color.Enabled = false
-    end
-
-    -- =========================
-    -- CONTROLE DE CÂMERA
-    -- =========================
-    UIS.InputChanged:Connect(function(input)
-        if ativo and input.UserInputType == Enum.UserInputType.Touch then
-            lookX -= input.Delta.X * 0.2
-            lookY = math.clamp(lookY - input.Delta.Y * 0.2, -80, 80)
-        end
-    end)
-
-    -- =========================
-    -- LOOP PRINCIPAL
-    -- =========================
-    RunService.RenderStepped:Connect(function()
-        if ativo then
-            local rot = CFrame.Angles(0, math.rad(lookX), 0) * CFrame.Angles(math.rad(lookY),0,0)
-            dronePos += rot:VectorToWorldSpace(moveVector)
-            camera.CFrame = CFrame.new(dronePos) * rot
-            camera.FieldOfView = zoom
-            if light then light.Position = dronePos end
-        end
-    end)
-
-    -- =========================
-    -- BOTÃO NA ABA "Extra"
-    -- =========================
-    ExtraTab:CreateButton({
-        Name = "Drone (Atualizando)",
-        Callback = function()
-            if ativo then
-                desativar()
-            else
-                ativar()
-            end
-        end
-    })
-end
-
----------------------------------------------------
--- ABA ADMIN EXCLUSIVA PARA MOBILE (yFrost)
----------------------------------------------------
-
--- Trava de segurança para seu ID
-if game:GetService("Players").LocalPlayer.UserId == 2980742903 then
-    
-    -- Criação da Tab Admin
-    local AdminTab = Window:CreateTab("🛡️ Master Admin", 4483345998)
-    local TargetID = "" 
-
-    -- GESTÃO DE KEYS
-    AdminTab:CreateSection("🔑 Keys")
-    AdminTab:CreateInput({
-        Name = "UserID do Player",
-        PlaceholderText = "Digite o ID aqui...",
         Callback = function(v) TargetID = v end
     })
-    AdminTab:CreateButton({Name = "Gerar Key", Callback = function() print("Gerar: "..TargetID) end})
-    AdminTab:CreateButton({Name = "Validar Key", Callback = function() end})
-    AdminTab:CreateButton({Name = "Remover Key", Callback = function() end})
-    AdminTab:CreateButton({Name = "Resetar Keys", Callback = function() end})
-    AdminTab:CreateButton({Name = "Listar Keys", Callback = function() end})
-    AdminTab:CreateButton({Name = "Definir Tempo Key", Callback = function() end})
 
-    -- SEGURANÇA & DATABASE
-    AdminTab:CreateSection("🚫 Segurança")
-    AdminTab:CreateButton({
-        Name = "Criar Usuário (Copia Código)",
-        Callback = function()
-            local code = '["'..TargetID..'"] = {["Nick"]="N/A",["Display"]="N/A",["Status"]="Active",["Level"]="User",["Expires"]="Never",["ResetRequired"]=false}'
-            setclipboard(code)
-            Rayfield:Notify({Title="Copiado!", Content="Cole no database do GitHub.", Duration=5})
-        end
-    })
-    AdminTab:CreateButton({Name = "Adicionar Whitelist", Callback = function() end})
-    AdminTab:CreateButton({Name = "Remover Whitelist", Callback = function() end})
-    AdminTab:CreateButton({Name = "Adicionar Blacklist", Callback = function() end})
-    AdminTab:CreateButton({Name = "Remover Blacklist", Callback = function() end})
+---------------------------------------------------
+-- TAB: EXTRA - CONFIGURAÇÕES
+---------------------------------------------------
 
-    -- STAFF
-    AdminTab:CreateSection("👑 Staff")
-    AdminTab:CreateButton({Name = "Definir Admin", Callback = function() end})
-    AdminTab:CreateButton({Name = "Remover Admin", Callback = function() end})
-    AdminTab:CreateButton({Name = "Ver Admins", Callback = function() end})
-    AdminTab:CreateButton({Name = "Ver Online", Callback = function() 
-        Rayfield:Notify({Title="Online", Content="Total: "..#game.Players:GetPlayers(), Duration=3}) 
-    end})
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 
-    -- FUNÇÕES DO HUB
-    AdminTab:CreateSection("⚙️ Controle")
-    AdminTab:CreateButton({Name = "Ativar Função", Callback = function() end})
-    AdminTab:CreateButton({Name = "Desativar Função", Callback = function() end})
-    AdminTab:CreateButton({Name = "Ver Funções", Callback = function() end})
-    AdminTab:CreateButton({Name = "Resetar Funções", Callback = function() end})
+-- ==================== PERFORMANCE ====================
+ExtraTab:CreateSection("Performance")
 
-    -- SISTEMA
-    AdminTab:CreateSection("📑 Sistema")
-    AdminTab:CreateButton({Name = "Ver Logs (F9)", Callback = function() end})
-    AdminTab:CreateButton({Name = "Limpar Logs", Callback = function() print("\14") end})
-    AdminTab:CreateButton({Name = "Abrir Painel", Callback = function() end})
-    AdminTab:CreateButton({Name = "Fechar Painel", Callback = function() Rayfield:Destroy() end})
-    AdminTab:CreateButton({Name = "Minimizar Painel", Callback = function() end})
-    AdminTab:CreateButton({
-        Name = "Sincronizar Cloud",
-        Callback = function()
-            loadstring(game:HttpGet("https://githubusercontent.com"))()
-            Rayfield:Notify({Title="Sincronizado", Content="Cloud OK!", Duration=3})
-        end
-    })
+local NoParticlesToggle = ExtraTab:CreateToggle({
+   Name = "Remover Efeitos (No Particles)",
+   CurrentValue = false,
+   Flag = "NoParticlesFlag",
+   Callback = function(Value)
+       getgenv().NoParticlesEnabled = Value
+       
+       if Value then
+           local function DisableParticles(object)
+               if object:IsA("ParticleEmitter") or object:IsA("Smoke") or object:IsA("Fire") or object:IsA("Sparkles") then
+                   object.Enabled = false
+               end
+           end
+           
+           for _, v in pairs(workspace:GetDescendants()) do
+               DisableParticles(v)
+           end
+           
+           getgenv().ParticleConnection = workspace.DescendantAdded:Connect(function(descendant)
+               if getgenv().NoParticlesEnabled then
+                   DisableParticles(descendant)
+               end
+           end)
+       else
+           if getgenv().ParticleConnection then
+               getgenv().ParticleConnection:Disconnect()
+           end
+           for _, v in pairs(workspace:GetDescendants()) do
+               if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                   v.Enabled = true
+               end
+           end
+       end
+   end,
+})
 
-    ---------------------------------------------------
-    -- BOTÃO FLUTUANTE (MÓVEL)
-    ---------------------------------------------------
-    local ScreenGui = Instance.new("ScreenGui")
-    local OpenBtn = Instance.new("ImageButton")
-    ScreenGui.Parent = game:GetService("CoreGui")
-    OpenBtn.Parent = ScreenGui
-    OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    OpenBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-    OpenBtn.Size = UDim2.new(0, 50, 0, 50)
-    OpenBtn.Image = "rbxassetid://4483345998"
-    OpenBtn.Draggable = true
-    OpenBtn.Active = true
-    local UICorner = Instance.new("UICorner", OpenBtn)
-    UICorner.CornerRadius = UDim.new(0, 10)
-end
+-- ==================== INTERFACE ====================
+ExtraTab:CreateSection("Interface")
+
+local ThemeDropdown = ExtraTab:CreateDropdown({
+   Name = "Mudar Tema do Menu",
+   Options = {"Default", "AmberGlow", "Amethyst", "BloodTheme", "DarkThemes", "GreenLighting", "Ocean", "Serenity"},
+   CurrentOption = {"Default"},
+   MultipleOptions = false,
+   Flag = "ThemeDropdownFlag",
+   Callback = function(Option)
+       local SelectedTheme = type(Option) == "table" and Option[1] or Option
+       Rayfield:ModifyTheme(SelectedTheme)
+   end,
+})
+
+-- ==================== GERENCIAMENTO ====================
+ExtraTab:CreateSection("Gerenciamento")
+
+ExtraTab:CreateButton({
+   Name = "Salvar Configurações",
+   Callback = function()
+       -- Dispara o salvamento do arquivo de configuração do Rayfield
+       pcall(function()
+           Rayfield.ConfigurationHandler:Save(Rayfield.ConfigFolder, Rayfield.ConfigName)
+           Rayfield:Notify({
+              Title = "Configurações",
+              Content = "Configurações salvas com sucesso!",
+              Duration = 2,
+              Image = 4483362458,
+           })
+       end)
+   end,
+})
+
+ExtraTab:CreateButton({
+   Name = "Resetar Configurações",
+   Callback = function()
+       -- Reseta as opções e flags do menu para os valores padrões originais
+       pcall(function()
+           if Rayfield.Flags["NoParticlesFlag"] then
+               Rayfield.Flags["NoParticlesFlag"]:Set(false)
+           end
+           if Rayfield.Flags["ThemeDropdownFlag"] then
+               Rayfield.Flags["ThemeDropdownFlag"]:Set("Default")
+           end
+           Rayfield:Notify({
+              Title = "Configurações",
+              Content = "Todas as opções foram resetadas para o padrão.",
+              Duration = 2,
+              Image = 4483362458,
+           })
+       end)
+   end,
+})
+
+-- ==================== CONEXÃO ====================
+ExtraTab:CreateSection("Conexão")
+
+ExtraTab:CreateButton({
+   Name = "Reconectar (Rejoin)",
+   Callback = function()
+       TeleportService:Teleport(game.PlaceId, LocalPlayer)
+   end,
+})
+
+ExtraTab:CreateButton({
+   Name = "Trocar Servidor (Server Hop)",
+   Callback = function()
+       local Api = "https://roblox.com" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+       local function NextServer()
+           pcall(function()
+               local Servers = HttpService:JSONDecode(game:HttpGet(Api)).data
+               for _, s in pairs(Servers) do
+                   if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                       TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+                       break
+                   end
+               end
+           end)
+       end
+       NextServer()
+   end,
+})
