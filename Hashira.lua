@@ -59,16 +59,65 @@ end
 })
 
 CombatTab:CreateButton({
-Name="Hitbox (off)",
-Callback=function()
-for _,v in pairs(Players:GetPlayers()) do
-if v~=LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-v.Character.HumanoidRootPart.Size=Vector3.new(10,10,10)
-v.Character.HumanoidRootPart.Transparency=0.7
-v.Character.HumanoidRootPart.CanCollide=false
+   Name = "Hitbox (V5 Universal)",
+   Callback = function()
+       -- Executa o script externo de Hitbox V5 Universal
+       loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Hitbox-V5-108660"))()
+   end
+})
+
+---------------------------------------------------
+-- FUNÇÃO: SENSIVELIDADE DA CÂMERA MOBILE FAST
+---------------------------------------------------
+
+local UserGameSettings = UserSettings():GetService("UserGameSettings")
+
+-- Inicializar valores padrão na tabela global
+getgenv().FastCameraSettings = getgenv().FastCameraSettings or {
+    Enabled = false,
+    Multiplier = 3 -- Multiplicador de velocidade (3x mais rápido que o padrão)
+}
+
+-- Armazena a sensibilidade original do jogador para poder resetar depois
+local OriginalSensitivity = UserGameSettings.GamepadCameraSensitivity
+
+-- Função para aplicar a nova sensibilidade de toque/arrasto
+local function UpdateCameraSensitivity()
+    if getgenv().FastCameraSettings.Enabled then
+        -- Multiplica a sensibilidade padrão do jogo para acelerar o deslize do dedo
+        UserGameSettings.GamepadCameraSensitivity = OriginalSensitivity * getgenv().FastCameraSettings.Multiplier
+    else
+        -- Restaura o padrão do Roblox
+        UserGameSettings.GamepadCameraSensitivity = OriginalSensitivity
+    end
 end
-end
-end
+
+-- ==================== ELEMENTOS DA UI ====================
+
+CombatTab:CreateToggle({
+   Name = "Câmera Ultra Responsiva (Mobile)",
+   Info = "Remove o arrasto lento e acelera o giro da tela",
+   CurrentValue = getgenv().FastCameraSettings.Enabled,
+   Flag = "FastCameraToggleFlag",
+   Callback = function(Value)
+       getgenv().FastCameraSettings.Enabled = Value
+       UpdateCameraSensitivity()
+   end,
+})
+
+CombatTab:CreateSlider({
+   Name = "Multiplicador de Sensibilidade",
+   Info = "Quantas vezes a tela vai girar mais rápido",
+   Min = 1,
+   Max = 10,
+   CurrentValue = getgenv().FastCameraSettings.Multiplier,
+   Flag = "FastCameraSliderFlag",
+   Callback = function(Value)
+       getgenv().FastCameraSettings.Multiplier = Value
+       if getgenv().FastCameraSettings.Enabled then
+           UpdateCameraSensitivity()
+       end
+   end,
 })
 
 ---------------------------------------------------
