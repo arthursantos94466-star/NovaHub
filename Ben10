@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
+local UIS = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
@@ -7,6 +8,22 @@ local HRP = Character:WaitForChild("HumanoidRootPart")
 local Tool = Character:WaitForChild("Player_Melee")
 
 local Farming = false
+
+-- Função para checar a colisão no objeto correto ("Collision")
+local function IsCrateValid(crateModel)
+	if not crateModel or not crateModel.Parent then return false end
+	
+	-- Procura o objeto que gerencia a colisão dentro do modelo da caixa
+	local collisionPart = crateModel:FindFirstChild("Collision", true)
+	
+	-- Se não achar a peça de colisão, assume que a caixa está quebrada ou inválida
+	if not collisionPart or not collisionPart:IsA("BasePart") then 
+		return false 
+	end
+	
+	-- Retorna se a colisão ainda está ativa
+	return collisionPart.CanCollide and collisionPart.CanTouch
+end
 
 -- GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -63,7 +80,7 @@ Info.Parent = Frame
 Info.Size = UDim2.new(1, -10, 0, 25)
 Info.Position = UDim2.new(0, 5, 1, -30)
 Info.BackgroundTransparency = 1
-Info.Text = "Troca de caixa: 1.7s"
+Info.Text = "Checando: Objeto Collision"
 Info.TextColor3 = Color3.new(1,1,1)
 Info.TextScaled = true
 
@@ -86,29 +103,51 @@ AutoFarmButton.MouseButton1Click:Connect(function()
 
 		task.spawn(function()
 			while Farming do
-				for _, crate in ipairs(workspace["Destroyable Crates"]:GetChildren()) do
-					if not Farming then
-						break
-					end
+				-- Atualiza referências do personagem para evitar bugs de travamento
+				Character = Player.Character or Player.CharacterAdded:Wait()
+				HRP = Character:WaitForChild("HumanoidRootPart")
+				Tool = Character:FindFirstChild("Player_Melee") or Player:WaitForChild("Backpack"):FindFirstChild("Player_Melee")
 
-					local center = crate:FindFirstChild("CenterPiece", true)
+				local cratesFolder = workspace:FindFirstChild("Destroyable Crates")
+				if cratesFolder then
+					for _, crate in ipairs(cratesFolder:GetChildren()) do
+						if not Farming then break end
 
-					if center and center:IsA("BasePart") then
-						HRP.CFrame = center.CFrame + Vector3.new(0, 3, 0)
+						-- 1. Verifica se a colisão na parte "Collision" está ativa antes de ir
+						if IsCrateValid(crate) then
+							local center = crate:FindFirstChild("CenterPiece", true)
 
-						local start = tick()
+							-- 2. Se a colisão for válida e o CenterPiece existir, faz o teleporte
+							if center and center:IsA("BasePart") then
+								
+								-- Equipar a ferramenta automaticamente se necessário
+								if Tool and Tool.Parent == Player:FindFirstChild("Backpack") then
+									Tool.Parent = Character
+								end
 
-						while tick() - start < 1.83 and Farming and crate.Parent do
-							RS.AlienAbilities.AbilityInputBindable:Fire(Tool)
-							task.wait(0.1)
+								-- Teleporta para o CenterPiece
+								HRP.CFrame = center.CFrame + Vector3.new(0, 3, 0)
+
+								local start = tick()
+
+								-- Loop de ataque na caixa
+								while tick() - start < 1.83 and Farming and crate.Parent do
+									-- 3. Se a parte "Collision" desativar o CanCollide no meio do ataque, sai do loop na hora
+									if not IsCrateValid(crate) then
+										break
+									end
+
+									RS.AlienAbilities.AbilityInputBindable:Fire(Tool)
+									task.wait(0.1)
+								end
+
+								task.wait(0.1) -- Pausa mínima para estabilizar a transição física
+							end
 						end
-
-task.wait(0.5)
-
 					end
 				end
 
-				task.wait()
+				task.wait(0.2)
 			end
 		end)
 
@@ -118,14 +157,12 @@ task.wait(0.5)
 	end
 end)
 
--- Arrastar GUI (mobile)
-local UIS = game:GetService("UserInputService")
+-- Sistema de Arrastar GUI (Universal para Mobile & PC)
 local dragging = false
-local dragStart
-local startPos
+local dragStart, startPos
 
 Frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch then
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
 		dragStart = input.Position
 		startPos = Frame.Position
@@ -133,9 +170,8 @@ Frame.InputBegan:Connect(function(input)
 end)
 
 UIS.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.Touch then
+	if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
 		local delta = input.Position - dragStart
-
 		Frame.Position = UDim2.new(
 			startPos.X.Scale,
 			startPos.X.Offset + delta.X,
@@ -146,7 +182,7 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 UIS.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch then
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = false
 	end
 end)
