@@ -1,0 +1,152 @@
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local HRP = Character:WaitForChild("HumanoidRootPart")
+local Tool = Character:WaitForChild("Player_Melee")
+
+local Farming = false
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CrateFarmGUI"
+ScreenGui.Parent = game.CoreGui
+
+local OpenButton = Instance.new("TextButton")
+OpenButton.Parent = ScreenGui
+OpenButton.Size = UDim2.new(0, 60, 0, 60)
+OpenButton.Position = UDim2.new(0, 10, 0.5, -30)
+OpenButton.Text = "📦"
+OpenButton.TextScaled = true
+OpenButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+OpenButton.Visible = false
+
+local OpenCorner = Instance.new("UICorner", OpenButton)
+OpenCorner.CornerRadius = UDim.new(0, 12)
+
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.Size = UDim2.new(0, 260, 0, 160)
+Frame.Position = UDim2.new(0.5, -130, 0.5, -80)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+
+local FrameCorner = Instance.new("UICorner", Frame)
+FrameCorner.CornerRadius = UDim.new(0, 12)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = Frame
+Title.Size = UDim2.new(1, -40, 0, 30)
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.BackgroundTransparency = 1
+Title.Text = "Destroyable Crate Farm"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextScaled = true
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Parent = Frame
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.Text = "X"
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+
+local AutoFarmButton = Instance.new("TextButton")
+AutoFarmButton.Parent = Frame
+AutoFarmButton.Size = UDim2.new(0.9, 0, 0, 50)
+AutoFarmButton.Position = UDim2.new(0.05, 0, 0.45, 0)
+AutoFarmButton.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+AutoFarmButton.Text = "AUTO FARM: OFF"
+AutoFarmButton.TextScaled = true
+
+local Info = Instance.new("TextLabel")
+Info.Parent = Frame
+Info.Size = UDim2.new(1, -10, 0, 25)
+Info.Position = UDim2.new(0, 5, 1, -30)
+Info.BackgroundTransparency = 1
+Info.Text = "Troca de caixa: 1.7s"
+Info.TextColor3 = Color3.new(1,1,1)
+Info.TextScaled = true
+
+CloseButton.MouseButton1Click:Connect(function()
+	Frame.Visible = false
+	OpenButton.Visible = true
+end)
+
+OpenButton.MouseButton1Click:Connect(function()
+	Frame.Visible = true
+	OpenButton.Visible = false
+end)
+
+AutoFarmButton.MouseButton1Click:Connect(function()
+	Farming = not Farming
+
+	if Farming then
+		AutoFarmButton.Text = "AUTO FARM: ON"
+		AutoFarmButton.BackgroundColor3 = Color3.fromRGB(50, 200, 80)
+
+		task.spawn(function()
+			while Farming do
+				for _, crate in ipairs(workspace["Destroyable Crates"]:GetChildren()) do
+					if not Farming then
+						break
+					end
+
+					local center = crate:FindFirstChild("CenterPiece", true)
+
+					if center and center:IsA("BasePart") then
+						HRP.CFrame = center.CFrame + Vector3.new(0, 3, 0)
+
+						local start = tick()
+
+						while tick() - start < 1.83 and Farming and crate.Parent do
+							RS.AlienAbilities.AbilityInputBindable:Fire(Tool)
+							task.wait(0.1)
+						end
+
+task.wait(0.5)
+
+					end
+				end
+
+				task.wait()
+			end
+		end)
+
+	else
+		AutoFarmButton.Text = "AUTO FARM: OFF"
+		AutoFarmButton.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+	end
+end)
+
+-- Arrastar GUI (mobile)
+local UIS = game:GetService("UserInputService")
+local dragging = false
+local dragStart
+local startPos
+
+Frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = Frame.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.Touch then
+		local delta = input.Position - dragStart
+
+		Frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
