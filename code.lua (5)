@@ -1,0 +1,359 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local LP = Players.LocalPlayer
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local IfuudEvent = Remotes:WaitForChild("IfuudEvent")
+
+-- GUI - APENAS UM BOTÃO
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "IfuudFarm"
+Gui.ResetOnSpawn = false
+Gui.Parent = LP:WaitForChild("PlayerGui")
+
+local Btn = Instance.new("TextButton")
+Btn.Size = UDim2.new(0, 180, 0, 45)
+Btn.Position = UDim2.new(0.5, -90, 0.85, -22)
+Btn.BackgroundColor3 = Color3.fromRGB(232, 29, 43)
+Btn.Text = "🍔 AUTO FARM"
+Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Btn.Font = Enum.Font.GothamBold
+Btn.TextSize = 16
+Btn.BorderSizePixel = 0
+Btn.Draggable = true
+Btn.Active = true
+Btn.Parent = Gui
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 10)
+BtnCorner.Parent = Btn
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(255, 255, 255)
+Stroke.Thickness = 1.5
+Stroke.Transparency = 0.5
+Stroke.Parent = Btn
+
+-- Variáveis
+local Ativo = false
+local EntregasCount = 0
+local Heartbeat = nil
+
+-- Cache das referências da interface do jogo
+local CodeIfuud = LP.PlayerGui:WaitForChild("CodeIfuud")
+local MainPage = CodeIfuud:FindFirstChild("MainPage")
+local StartMission = MainPage and MainPage:FindFirstChild("StartMission")
+local EtapasUI = StartMission and StartMission:FindFirstChild("EtapasUI")
+local Meio = EtapasUI and EtapasUI:FindFirstChild("Meio")
+local CodigoTxt = Meio and Meio:FindFirstChild("Codigo") and Meio.Codigo:FindFirstChild("CodigoTxt")
+local ConfirmarBtn = Meio and Meio:FindFirstChild("Confirmar")
+
+function TP(pos)
+    local char = LP.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = CFrame.new(pos)
+        return true
+    end
+    return false
+end
+
+function FirePrompt(nome)
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Name == nome and obj.Enabled then
+            fireproximityprompt(obj)
+            return true
+        end
+    end
+    return false
+end
+
+function GetPromptPos(nome)
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Name == nome and obj.Enabled then
+            local part = obj.Parent
+            if part and part:IsA("BasePart") then
+                return part.Position
+            end
+        end
+    end
+    return nil
+end
+
+-- ============================================================
+-- FUNÇÃO CORRETA PARA INSERIR CÓDIGO
+-- ============================================================
+function InserirCodigo(codigo)
+    if not codigo or #codigo ~= 4 then
+        print("[Farm] Código inválido: " .. tostring(codigo))
+        return false
+    end
+    
+    print("[Farm] Inserindo código: " .. codigo)
+    
+    -- Verifica se a interface está acessível
+    if not CodigoTxt or not ConfirmarBtn then
+        print("[Farm] Interface do código não encontrada! Buscando...")
+        -- Tenta achar novamente
+        local CodeIfuud2 = LP.PlayerGui:FindFirstChild("CodeIfuud")
+        if CodeIfuud2 then
+            local MP = CodeIfuud2:FindFirstChild("MainPage")
+            local SM = MP and MP:FindFirstChild("StartMission")
+            local EU = SM and SM:FindFirstChild("EtapasUI")
+            local M = EU and EU:FindFirstChild("Meio")
+            local C = M and M:FindFirstChild("Codigo")
+            CodigoTxt = C and C:FindFirstChild("CodigoTxt")
+            ConfirmarBtn = M and M:FindFirstChild("Confirmar")
+        end
+    end
+    
+    if not CodigoTxt or not ConfirmarBtn then
+        print("[Farm] Campo de texto ou botão Confirmar não encontrados!")
+        return false
+    end
+    
+    print("[Farm] Campo encontrado: " .. CodigoTxt:GetFullName())
+    print("[Farm] Botão Confirmar: " .. ConfirmarBtn:GetFullName())
+    
+    -- PASSO 1: Limpa o campo de texto
+    CodigoTxt.Text = ""
+    task.wait(0.1)
+    
+    -- PASSO 2: Foca no campo (como o jogo faz com CaptureFocus)
+    CodigoTxt:CaptureFocus()
+    task.wait(0.1)
+    
+    -- PASSO 3: Digita o código caractere por caractere
+    for i = 1, 4 do
+        local digito = string.sub(codigo, i, i)
+        CodigoTxt.Text = CodigoTxt.Text .. digito
+        task.wait(0.05)
+    end
+    
+    task.wait(0.15)
+    
+    -- PASSO 4: Verifica se o texto foi inserido corretamente
+    print("[Farm] Texto no campo: '" .. CodigoTxt.Text .. "' (esperado: '" .. codigo .. "')")
+    
+    if CodigoTxt.Text ~= codigo then
+        print("[Farm] Tentando novamente...")
+        CodigoTxt.Text = codigo
+        task.wait(0.1)
+    end
+    
+    -- PASSO 5: Dispara o evento do servidor exatamente como o jogo faz
+    -- O jogo original faz: IfuudEvent:FireServer("VerificarCodigoFinal", v57)
+    -- quando o botão Confirmar é clicado E o texto tem 4 caracteres
+    print("[Farm] Disparando evento VerificarCodigoFinal...")
+    IfuudEvent:FireServer("VerificarCodigoFinal", codigo)
+    
+    task.wait(0.3)
+    
+    -- PASSO 6: Libera o foco
+    CodigoTxt:ReleaseFocus()
+    
+    print("[Farm] Código " .. codigo .. " enviado ao servidor!")
+    return true
+end
+
+-- ============================================================
+-- FUNÇÃO PARA PEGAR CÓDIGO DO DIÁLOGO
+-- ============================================================
+function GetCodigo()
+    local CodeIfuud2 = LP.PlayerGui:FindFirstChild("CodeIfuud")
+    if not CodeIfuud2 then return nil end
+    
+    -- Procura o DialogoFrame
+    local Dialogo = CodeIfuud2:FindFirstChild("DialogoFrame")
+    if Dialogo and Dialogo.Visible then
+        local Assunto = Dialogo:FindFirstChild("Assunto")
+        if Assunto then
+            local codigo = string.match(Assunto.Text, "(%d%d%d%d)")
+            if codigo then
+                print("[Farm] Código encontrado no diálogo: " .. codigo)
+                return codigo
+            end
+        end
+    end
+    
+    -- Tenta pegar do CodigoTxt se já foi preenchido pelo jogo
+    if CodigoTxt and CodigoTxt.Text and #CodigoTxt.Text == 4 then
+        print("[Farm] Código encontrado no campo: " .. CodigoTxt.Text)
+        return CodigoTxt.Text
+    end
+    
+    -- Tenta pegar do v_u_26 (variável que o jogo usa para armazenar o código)
+    -- O jogo faz: v_u_26 = p_u_70 quando AbrirPainelCodigo é chamado
+    -- O p_u_70 é o código de segurança
+    
+    return nil
+end
+
+-- MONITORAMENTO
+function Iniciar()
+    EntregasCount = 0
+    Ativo = true
+    Btn.Text = "⏹ PARAR FARM"
+    Btn.BackgroundColor3 = Color3.fromRGB(180, 20, 20)
+    
+    local fase = "parado"
+    local ultimaAcao = 0
+    local codigoJaInserido = false
+    
+    Heartbeat = RunService.Heartbeat:Connect(function()
+        if not Ativo then return end
+        
+        local agora = tick()
+        if agora - ultimaAcao < 0.3 then return end
+        ultimaAcao = agora
+        
+        -- DETECTOU PROMPT DE PEGAR PEDIDO
+        if fase == "parado" or fase == "monitorando" then
+            local pos = GetPromptPos("PegarPedido")
+            if pos then
+                fase = "coleta"
+                Btn.Text = "📦 Coletando..."
+                codigoJaInserido = false
+                
+                TP(pos + Vector3.new(0, 3, 0))
+                task.wait(0.2)
+                
+                FirePrompt("PegarPedido")
+                task.wait(1)
+                fase = "coletou"
+                Btn.Text = "📥 Pegou pedido"
+                print("[Farm] Pedido coletado!")
+            end
+        end
+        
+        -- DETECTOU PROMPT DE ENTREGAR
+        if fase == "coletou" or fase == "coleta" or fase == "codigo_inserido" then
+            local pos = GetPromptPos("Entregar")
+            if pos then
+                fase = "entrega"
+                Btn.Text = "📍 Entregando..."
+                
+                TP(pos + Vector3.new(0, 3, 0))
+                task.wait(0.2)
+                
+                if not codigoJaInserido then
+                    -- Tenta pegar código
+                    local codigo = GetCodigo()
+                    
+                    -- Se não achou no diálogo, espera um pouco
+                    if not codigo then
+                        task.wait(1)
+                        codigo = GetCodigo()
+                    end
+                    
+                    if codigo then
+                        Btn.Text = "🔑 Código: " .. codigo
+                        InserirCodigo(codigo)
+                        codigoJaInserido = true
+                        task.wait(0.5)
+                    end
+                end
+                
+                FirePrompt("Entregar")
+                task.wait(2)
+                
+                EntregasCount = EntregasCount + 1
+                print("[Farm] ✅ Entrega " .. EntregasCount .. " concluída!")
+                
+                fase = "parado"
+                Btn.Text = "🍔 AUTO FARM (" .. EntregasCount .. ")"
+            end
+        end
+        
+        -- VERIFICA DIÁLOGO DE CÓDIGO A QUALQUER MOMENTO
+        if not codigoJaInserido and (fase == "coletou" or fase == "coleta" or fase == "parado") then
+            local Dialogo = CodeIfuud and CodeIfuud:FindFirstChild("DialogoFrame")
+            if Dialogo and Dialogo.Visible then
+                local codigo = GetCodigo()
+                if codigo then
+                    print("[Farm] Diálogo detectado! Código: " .. codigo)
+                    Btn.Text = "🔑 Código: " .. codigo
+                    InserirCodigo(codigo)
+                    codigoJaInserido = true
+                    fase = "codigo_inserido"
+                    
+                    task.wait(0.5)
+                    
+                    -- Verifica se já tem prompt de entrega pra disparar
+                    local pos = GetPromptPos("Entregar")
+                    if pos then
+                        TP(pos + Vector3.new(0, 3, 0))
+                        task.wait(0.2)
+                        FirePrompt("Entregar")
+                        task.wait(2)
+                        EntregasCount = EntregasCount + 1
+                        print("[Farm] ✅ Entrega " .. EntregasCount .. " concluída!")
+                        fase = "parado"
+                        Btn.Text = "🍔 AUTO FARM (" .. EntregasCount .. ")"
+                    end
+                end
+            end
+        end
+        
+        -- Monitora o evento AbrirPainelCodigo para pegar o código na hora
+        -- (o jogo dispara esse evento com o código como argumento)
+        -- Vamos conectar uma vez só no início
+        
+        -- Reset se ficou parado por muito tempo
+        if fase == "codigo_inserido" and not GetPromptPos("Entregar") then
+            task.wait(2)
+            fase = "parado"
+            Btn.Text = "🍔 AUTO FARM (" .. EntregasCount .. ")"
+        end
+    end)
+    
+    -- Conecta no evento do jogo para capturar o código quando o painel abrir
+    local conn
+    conn = IfuudEvent.OnClientEvent:Connect(function(evento, dado)
+        if evento == "AbrirPainelCodigo" and dado then
+            print("[Farm] Evento AbrirPainelCodigo recebido! Código: " .. dado)
+            if not codigoJaInserido then
+                InserirCodigo(dado)
+                codigoJaInserido = true
+                fase = "codigo_inserido"
+                Btn.Text = "🔑 Código: " .. dado
+            end
+        elseif evento == "EntregaConcluida" then
+            print("[Farm] Evento EntregaConcluida recebido!")
+        elseif evento == "CodigoErrado" then
+            print("[Farm] Código errado! Tentando novamente...")
+            codigoJaInserido = false
+        end
+    end)
+    
+    -- Armazena a conexão pra limpar depois
+    _G._farmConn = conn
+end
+
+function Parar()
+    Ativo = false
+    if Heartbeat then
+        Heartbeat:Disconnect()
+        Heartbeat = nil
+    end
+    if _G._farmConn then
+        _G._farmConn:Disconnect()
+        _G._farmConn = nil
+    end
+    Btn.Text = "🍔 AUTO FARM"
+    Btn.BackgroundColor3 = Color3.fromRGB(232, 29, 43)
+    print("[Farm] Desativado. Total de entregas: " .. EntregasCount)
+end
+
+-- Clique no botão
+Btn.MouseButton1Click:Connect(function()
+    if Ativo then
+        Parar()
+    else
+        Iniciar()
+    end
+end)
+
+print("🍔 Ifuud Auto Farm carregado!")
+print("📌 Clique no botão vermelho na tela para iniciar/parar.")
