@@ -1,0 +1,755 @@
+-- Serviços do Roblox
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- ==========================================
+-- VARIÁVEIS DE ESTADO
+-- ==========================================
+local highlightEnabled = false
+local aimbotEnabled = false
+local aimAssistEnabled = false
+local activeHighlights = {}
+
+-- Configurações de suavidade (optimizado para mobile)
+local aimbotSmoothness = 0.35
+local aimAssistStrength = 0.15  -- Muito fraco para não grudar
+local aimFOV = 250
+
+-- ==========================================
+-- CRIAÇÃO DA INTERFACE (UI) MOBILE
+-- ==========================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NexusHubMobile"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Proteção para exploit
+if syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = game:GetService("CoreGui")
+elseif gethui then
+    ScreenGui.Parent = gethui()
+end
+
+-- ==========================================
+-- BOTÃO FLUTUANTE MOBILE (maior para toque)
+-- ==========================================
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Size = UDim2.new(0, 75, 0, 75)
+ToggleButton.Position = UDim2.new(0, 15, 0.85, -37)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+ToggleButton.Text = "☰"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 28
+ToggleButton.AutoButtonColor = false
+ToggleButton.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 20)
+ToggleCorner.Parent = ToggleButton
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Color = Color3.fromRGB(0, 170, 255)
+ToggleStroke.Thickness = 3
+ToggleStroke.Parent = ToggleButton
+
+-- ==========================================
+-- FRAME PRINCIPAL (HUB) - Mobile adaptado
+-- ==========================================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 460)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -230)
+MainFrame.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 22)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(40, 40, 55)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
+
+-- ==========================================
+-- BARRA DE TÍTULO
+-- ==========================================
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 60)
+TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 22)
+TitleCorner.Parent = TitleBar
+
+-- Força o corner só em cima
+local TitlePadding = Instance.new("UIPadding")
+TitlePadding.PaddingTop = UDim.new(0, 0)
+TitlePadding.Parent = TitleBar
+
+local TitleIcon = Instance.new("TextLabel")
+TitleIcon.Text = "⚡"
+TitleIcon.Size = UDim2.new(0, 40, 1, 0)
+TitleIcon.Position = UDim2.new(0, 12, 0, 0)
+TitleIcon.BackgroundTransparency = 1
+TitleIcon.TextColor3 = Color3.fromRGB(0, 200, 255)
+TitleIcon.Font = Enum.Font.GothamBold
+TitleIcon.TextSize = 26
+TitleIcon.Parent = TitleBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Text = "NEXUS HUB"
+TitleLabel.Size = UDim2.new(1, -100, 1, 0)
+TitleLabel.Position = UDim2.new(0, 55, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.TextColor3 = Color3.fromRGB(220, 220, 240)
+TitleLabel.Font = Enum.Font.GothamBlack
+TitleLabel.TextSize = 22
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TitleBar
+
+-- ==========================================
+-- BOTÃO FECHAR (X) - GRANDE MOBILE
+-- ==========================================
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 40, 0, 40)
+CloseButton.Position = UDim2.new(1, -50, 0, 10)
+CloseButton.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+CloseButton.BackgroundTransparency = 0.4
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "✕"
+CloseButton.TextColor3 = Color3.fromRGB(200, 200, 220)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 22
+CloseButton.AutoButtonColor = false
+CloseButton.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 12)
+CloseCorner.Parent = CloseButton
+
+-- ==========================================
+-- CONTEÚDO SCROLLÁVEL
+-- ==========================================
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Size = UDim2.new(1, -20, 1, -80)
+ScrollingFrame.Position = UDim2.new(0, 10, 0, 70)
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.BorderSizePixel = 0
+ScrollingFrame.ScrollBarThickness = 4
+ScrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 85)
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollingFrame.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 12)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = ScrollingFrame
+
+local function UpdateCanvas()
+    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 20)
+end
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCanvas)
+
+-- ==========================================
+-- FUNÇÃO: CRIAR SEÇÃO
+-- ==========================================
+local function CreateSection(title)
+    local SectionFrame = Instance.new("Frame")
+    SectionFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 32)
+    SectionFrame.BorderSizePixel = 0
+    SectionFrame.Size = UDim2.new(1, 0, 0, 85)
+    SectionFrame.Parent = ScrollingFrame
+    
+    local SectionCorner = Instance.new("UICorner")
+    SectionCorner.CornerRadius = UDim.new(0, 14)
+    SectionCorner.Parent = SectionFrame
+    
+    local SectionLabel = Instance.new("TextLabel")
+    SectionLabel.Text = title
+    SectionLabel.Size = UDim2.new(1, -20, 0, 32)
+    SectionLabel.Position = UDim2.new(0, 12, 0, 6)
+    SectionLabel.BackgroundTransparency = 1
+    SectionLabel.TextColor3 = Color3.fromRGB(130, 130, 180)
+    SectionLabel.Font = Enum.Font.GothamBold
+    SectionLabel.TextSize = 14
+    SectionLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SectionLabel.Parent = SectionFrame
+    
+    local Container = Instance.new("Frame")
+    Container.BackgroundTransparency = 1
+    Container.Size = UDim2.new(1, -20, 0, 40)
+    Container.Position = UDim2.new(0, 12, 0, 40)
+    Container.Parent = SectionFrame
+    
+    local ContainerLayout = Instance.new("UIListLayout")
+    ContainerLayout.FillDirection = Enum.FillDirection.Horizontal
+    ContainerLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    ContainerLayout.Padding = UDim.new(0, 10)
+    ContainerLayout.Parent = Container
+    
+    return SectionFrame, Container
+end
+
+-- ==========================================
+-- FUNÇÃO: CRIAR TOGGLE MOBILE (grande)
+-- ==========================================
+local function CreateToggle(parent, text, icon, defaultState, color, callback)
+    local state = defaultState or false
+    
+    local ToggleFrame = Instance.new("Frame")
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 40)
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.Size = UDim2.new(0, 145, 0, 48)
+    ToggleFrame.Parent = parent
+    
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 12)
+    ToggleCorner.Parent = ToggleFrame
+    
+    -- Ícone
+    local IconLabel = Instance.new("TextLabel")
+    IconLabel.Text = icon or ""
+    IconLabel.Size = UDim2.new(0, 34, 1, 0)
+    IconLabel.Position = UDim2.new(0, 8, 0, 0)
+    IconLabel.BackgroundTransparency = 1
+    IconLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
+    IconLabel.Font = Enum.Font.GothamBold
+    IconLabel.TextSize = 20
+    IconLabel.Parent = ToggleFrame
+    
+    -- Texto
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.Text = text
+    TextLabel.Size = UDim2.new(1, -88, 1, 0)
+    TextLabel.Position = UDim2.new(0, 44, 0, 0)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.TextColor3 = Color3.fromRGB(170, 170, 200)
+    TextLabel.Font = Enum.Font.Gotham
+    TextLabel.TextSize = 14
+    TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TextLabel.Parent = ToggleFrame
+    
+    -- Switch (track)
+    local SwitchTrack = Instance.new("Frame")
+    SwitchTrack.Size = UDim2.new(0, 40, 0, 24)
+    SwitchTrack.Position = UDim2.new(1, -48, 0.5, -12)
+    SwitchTrack.BackgroundColor3 = Color3.fromRGB(65, 65, 85)
+    SwitchTrack.BorderSizePixel = 0
+    SwitchTrack.Parent = ToggleFrame
+    
+    local TrackCorner = Instance.new("UICorner")
+    TrackCorner.CornerRadius = UDim.new(0, 12)
+    TrackCorner.Parent = SwitchTrack
+    
+    -- Switch (thumb)
+    local SwitchThumb = Instance.new("Frame")
+    SwitchThumb.Size = UDim2.new(0, 20, 0, 20)
+    SwitchThumb.Position = UDim2.new(0, 2, 0.5, -10)
+    SwitchThumb.BackgroundColor3 = Color3.fromRGB(200, 200, 220)
+    SwitchThumb.BorderSizePixel = 0
+    SwitchThumb.Parent = SwitchTrack
+    
+    local ThumbCorner = Instance.new("UICorner")
+    ThumbCorner.CornerRadius = UDim.new(0, 10)
+    ThumbCorner.Parent = SwitchThumb
+    
+    -- Feedback visual
+    local function UpdateVisual()
+        if state then
+            IconLabel.TextColor3 = color or Color3.fromRGB(0, 255, 120)
+            TextLabel.TextColor3 = color or Color3.fromRGB(0, 255, 120)
+            TweenService:Create(SwitchTrack, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                BackgroundColor3 = color or Color3.fromRGB(0, 220, 100)
+            }):Play()
+            TweenService:Create(SwitchThumb, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, 18, 0.5, -10)
+            }):Play()
+        else
+            IconLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
+            TextLabel.TextColor3 = Color3.fromRGB(170, 170, 200)
+            TweenService:Create(SwitchTrack, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                BackgroundColor3 = Color3.fromRGB(65, 65, 85)
+            }):Play()
+            TweenService:Create(SwitchThumb, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, 2, 0.5, -10)
+            }):Play()
+        end
+    end
+    
+    -- Toque/clique
+    ToggleFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            state = not state
+            UpdateVisual()
+            if callback then callback(state) end
+        end
+    end)
+    
+    UpdateVisual()
+    return ToggleFrame
+end
+
+-- ==========================================
+-- FUNÇÃO: CRIAR BOTÃO (ação única)
+-- ==========================================
+local function CreateActionButton(parent, text, icon, color, callback)
+    local Button = Instance.new("TextButton")
+    Button.Text = ""
+    Button.Size = UDim2.new(1, 0, 0, 55)
+    Button.BackgroundColor3 = Color3.fromRGB(28, 28, 40)
+    Button.BorderSizePixel = 0
+    Button.AutoButtonColor = false
+    Button.Parent = parent
+    
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.CornerRadius = UDim.new(0, 14)
+    ButtonCorner.Parent = Button
+    
+    local IconLabel = Instance.new("TextLabel")
+    IconLabel.Text = icon or ""
+    IconLabel.Size = UDim2.new(0, 36, 1, 0)
+    IconLabel.Position = UDim2.new(0, 12, 0, 0)
+    IconLabel.BackgroundTransparency = 1
+    IconLabel.TextColor3 = color or Color3.fromRGB(200, 200, 220)
+    IconLabel.Font = Enum.Font.GothamBold
+    IconLabel.TextSize = 20
+    IconLabel.Parent = Button
+    
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.Text = text
+    TextLabel.Size = UDim2.new(1, -60, 1, 0)
+    TextLabel.Position = UDim2.new(0, 50, 0, 0)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+    TextLabel.Font = Enum.Font.Gotham
+    TextLabel.TextSize = 16
+    TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TextLabel.Parent = Button
+    
+    -- Seta >
+    local Arrow = Instance.new("TextLabel")
+    Arrow.Text = "›"
+    Arrow.Size = UDim2.new(0, 30, 1, 0)
+    Arrow.Position = UDim2.new(1, -35, 0, 0)
+    Arrow.BackgroundTransparency = 1
+    Arrow.TextColor3 = Color3.fromRGB(80, 80, 110)
+    Arrow.Font = Enum.Font.GothamBold
+    Arrow.TextSize = 28
+    Arrow.Parent = Button
+    
+    Button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            -- Feedback de toque
+            TweenService:Create(Button, TweenInfo.new(0.1), {
+                BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+            }):Play()
+            task.wait(0.1)
+            TweenService:Create(Button, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(28, 28, 40)
+            }):Play()
+            if callback then callback() end
+        end
+    end)
+    
+    return Button
+end
+
+-- ==========================================
+-- CONSTRUIR O MENU
+-- ==========================================
+
+-- SEÇÃO: VISUAIS
+local visSection, visContainer = CreateSection("🎨 VISUAIS")
+
+CreateToggle(visContainer, "Highlight", "●", false, Color3.fromRGB(255, 50, 100), function(state)
+    highlightEnabled = state
+end)
+
+-- SEÇÃO: MIRA
+local aimSection, aimContainer = CreateSection("🎯 MIRA")
+
+CreateToggle(aimContainer, "Aimbot", "◎", false, Color3.fromRGB(255, 200, 50), function(state)
+    aimbotEnabled = state
+end)
+
+CreateToggle(aimContainer, "Aim Assist", "◉", false, Color3.fromRGB(50, 200, 255), function(state)
+    aimAssistEnabled = state
+end)
+
+-- SEÇÃO: INFORMAÇÕES
+local infoSection = Instance.new("Frame")
+infoSection.BackgroundColor3 = Color3.fromRGB(22, 22, 32)
+infoSection.BorderSizePixel = 0
+infoSection.Size = UDim2.new(1, 0, 0, 60)
+infoSection.Parent = ScrollingFrame
+
+local InfoCorner = Instance.new("UICorner")
+InfoCorner.CornerRadius = UDim.new(0, 14)
+InfoCorner.Parent = infoSection
+
+local InfoIcon = Instance.new("TextLabel")
+InfoIcon.Text = "💡"
+InfoIcon.Size = UDim2.new(0, 30, 1, 0)
+InfoIcon.Position = UDim2.new(0, 10, 0, 0)
+InfoIcon.BackgroundTransparency = 1
+InfoIcon.TextColor3 = Color3.fromRGB(100, 100, 140)
+InfoIcon.Font = Enum.Font.Gotham
+InfoIcon.TextSize = 18
+InfoIcon.Parent = infoSection
+
+local InfoText = Instance.new("TextLabel")
+InfoText.Text = "Pressione [Insert] no teclado\nou toque no botão flutuante"
+InfoText.Size = UDim2.new(1, -50, 1, 0)
+InfoText.Position = UDim2.new(0, 42, 0, 0)
+InfoText.BackgroundTransparency = 1
+InfoText.TextColor3 = Color3.fromRGB(100, 100, 140)
+InfoText.Font = Enum.Font.Gotham
+InfoText.TextSize = 13
+InfoText.TextXAlignment = Enum.TextXAlignment.Left
+InfoText.TextYAlignment = Enum.TextYAlignment.Center
+InfoText.Parent = infoSection
+
+UpdateCanvas()
+
+-- ==========================================
+-- SISTEMA DE DRAG MOBILE (TOQUE)
+-- ==========================================
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+-- Detecta toque na TitleBar
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        -- Quando o dedo/click soltar
+        local conn
+        conn = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+                conn:Disconnect()
+            end
+        end)
+    end
+end)
+
+-- Move o frame enquanto arrasta
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+        -- Move direto (sem tween para não dar lag no toque)
+        MainFrame.Position = newPos
+    end
+end)
+
+-- ==========================================
+-- ABRIR/FECHAR - MOBILE OTIMIZADO
+-- ==========================================
+
+-- Função para alternar menu
+local function ToggleMenu()
+    MainFrame.Visible = not MainFrame.Visible
+    
+    if MainFrame.Visible then
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {
+            BackgroundColor3 = Color3.fromRGB(220, 50, 60),
+            Size = UDim2.new(0, 65, 0, 65)
+        }):Play()
+        ToggleStroke.Color = Color3.fromRGB(255, 80, 100)
+        ToggleButton.Text = "✕"
+        ToggleButton.TextSize = 24
+    else
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {
+            BackgroundColor3 = Color3.fromRGB(25, 25, 35),
+            Size = UDim2.new(0, 75, 0, 75)
+        }):Play()
+        ToggleStroke.Color = Color3.fromRGB(0, 170, 255)
+        ToggleButton.Text = "☰"
+        ToggleButton.TextSize = 28
+    end
+end
+
+-- Botão flutuante
+ToggleButton.MouseButton1Click:Connect(ToggleMenu)
+ToggleButton.TouchTap:Connect(ToggleMenu)
+
+-- Botão X
+CloseButton.MouseButton1Click:Connect(function()
+    if MainFrame.Visible then ToggleMenu() end
+end)
+CloseButton.TouchTap:Connect(function()
+    if MainFrame.Visible then ToggleMenu() end
+end)
+
+-- Tecla Insert (para PC conectado)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Insert then
+        ToggleMenu()
+    end
+end)
+
+-- ==========================================
+-- FUNÇÃO: HIGHLIGHT (workspace.NPCs)
+-- ==========================================
+
+local function UpdateHighlights()
+    -- Remove destaques antigos
+    for _, hl in pairs(activeHighlights) do
+        hl:Destroy()
+    end
+    table.clear(activeHighlights)
+    
+    if not highlightEnabled then return end
+    
+    local NPCsFolder = Workspace:FindFirstChild("NPCs")
+    if not NPCsFolder then return end
+    
+    for _, npc in pairs(NPCsFolder:GetChildren()) do
+        if npc:IsA("Model") then
+            local humanoid = npc:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                local hl = Instance.new("Highlight")
+                hl.FillColor = Color3.fromRGB(255, 0, 80)
+                hl.FillTransparency = 0.35
+                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                hl.OutlineTransparency = 0.1
+                hl.Adornee = npc
+                hl.Parent = npc
+                activeHighlights[npc] = hl
+                
+                -- Efeito pulsante
+                task.spawn(function()
+                    local t = 0
+                    while activeHighlights[npc] and highlightEnabled do
+                        t = t + 0.05
+                        hl.FillTransparency = 0.25 + math.sin(t * 3) * 0.15
+                        task.wait(0.05)
+                    end
+                end)
+            end
+        end
+    end
+end
+
+local npcConnection = nil
+
+local function OnNPCAdded(child)
+    if not highlightEnabled then return end
+    task.wait(0.5)
+    
+    if child:IsA("Model") then
+        local humanoid = child:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            local hl = Instance.new("Highlight")
+            hl.FillColor = Color3.fromRGB(255, 0, 80)
+            hl.FillTransparency = 0.35
+            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+            hl.OutlineTransparency = 0.1
+            hl.Adornee = child
+            hl.Parent = child
+            activeHighlights[child] = hl
+        end
+    end
+end
+
+local function ToggleHighlightSystem(enable)
+    if enable then
+        UpdateHighlights()
+        local npcFolder = Workspace:FindFirstChild("NPCs")
+        if npcFolder then
+            npcConnection = npcFolder.ChildAdded:Connect(OnNPCAdded)
+        end
+    else
+        for _, hl in pairs(activeHighlights) do
+            hl:Destroy()
+        end
+        table.clear(activeHighlights)
+        
+        if npcConnection then
+            npcConnection:Disconnect()
+            npcConnection = nil
+        end
+    end
+end
+
+-- ==========================================
+-- FUNÇÃO: AIMBOT + AIM ASSIST (MOBILE)
+-- ==========================================
+
+local function GetBestTarget()
+    local bestTarget = nil
+    local bestDist = aimFOV
+    
+    -- NPCs
+    local NPCsFolder = Workspace:FindFirstChild("NPCs")
+    if NPCsFolder then
+        for _, npc in pairs(NPCsFolder:GetChildren()) do
+            if npc:IsA("Model") then
+                local head = npc:FindFirstChild("Head")
+                local humanoid = npc:FindFirstChildOfClass("Humanoid")
+                if head and humanoid and humanoid.Health > 0 then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if dist < bestDist and dist > 0 then
+                            bestDist = dist
+                            bestTarget = head
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Jogadores
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            if char then
+                local head = char:FindFirstChild("Head")
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if head and humanoid and humanoid.Health > 0 then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if dist < bestDist and dist > 0 then
+                            bestDist = dist
+                            bestTarget = head
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return bestTarget
+end
+
+-- Sistema de mira que RODA NO CELULAR
+local aimConnection = nil
+
+local function SetupAimSystem()
+    if aimConnection then
+        aimConnection:Disconnect()
+    end
+    
+    aimConnection = RunService.RenderStepped:Connect(function()
+        if not aimbotEnabled and not aimAssistEnabled then return end
+        
+        local target = GetBestTarget()
+        if not target then return end
+        
+        local currentCF = Camera.CFrame
+        local targetPos = target.Position
+        
+        -- AIMBOT: mira na cabeça com suavidade
+        if aimbotEnabled then
+            local lookAt = CFrame.lookAt(currentCF.Position, targetPos)
+            local smooth = math.clamp(1 - aimbotSmoothness, 0.05, 0.7)
+            Camera.CFrame = currentCF:Lerp(lookAt, smooth)
+        end
+        
+        -- AIM ASSIST: NÃO GRUDA, só auxilia leve
+        if aimAssistEnabled and not aimbotEnabled then
+            local lookAt = CFrame.lookAt(currentCF.Position, targetPos)
+            -- Força extremamente fraca: 0.05 a 0.15 (não gruda!)
+            Camera.CFrame = currentCF:Lerp(lookAt, aimAssistStrength)
+        end
+    end)
+end
+
+-- ==========================================
+-- WATCHDOG: GERENCIA SISTEMAS
+-- ==========================================
+task.spawn(function()
+    SetupAimSystem()
+    
+    while task.wait(0.15) do
+        -- Highlight
+        ToggleHighlightSystem(highlightEnabled)
+        
+        -- Aimbot/AimAssist
+        if aimbotEnabled or aimAssistEnabled then
+            if not aimConnection then SetupAimSystem() end
+        end
+    end
+end)
+
+-- ==========================================
+-- NOTIFICAÇÃO DE BOAS-VINDAS
+-- ==========================================
+local Notification = Instance.new("Frame")
+Notification.Size = UDim2.new(0, 300, 0, 60)
+Notification.Position = UDim2.new(0.5, -150, 0, -80)
+Notification.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
+Notification.BorderSizePixel = 0
+Notification.Parent = ScreenGui
+
+local NotifCorner = Instance.new("UICorner")
+NotifCorner.CornerRadius = UDim.new(0, 16)
+NotifCorner.Parent = Notification
+
+local NotifStroke = Instance.new("UIStroke")
+NotifStroke.Color = Color3.fromRGB(0, 200, 255)
+NotifStroke.Thickness = 1.5
+NotifStroke.Parent = Notification
+
+local NotifText = Instance.new("TextLabel")
+NotifText.Text = "⚡ NEXUS HUB carregado!\nToque no ☰ para abrir"
+NotifText.Size = UDim2.new(1, -20, 1, 0)
+NotifText.Position = UDim2.new(0, 10, 0, 0)
+NotifText.BackgroundTransparency = 1
+NotifText.TextColor3 = Color3.fromRGB(0, 200, 255)
+NotifText.Font = Enum.Font.GothamBold
+NotifText.TextSize = 15
+NotifText.LineHeight = 1.5
+NotifText.Parent = Notification
+
+-- Animação de entrada
+local tweenIn = TweenService:Create(
+    Notification,
+    TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    {Position = UDim2.new(0.5, -150, 0, 20)}
+)
+tweenIn:Play()
+
+-- Soma após 3 segundos
+task.wait(3.5)
+local tweenOut = TweenService:Create(
+    Notification,
+    TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+    {Position = UDim2.new(0.5, -150, 0, -80)}
+)
+tweenOut:Play()
+tweenOut.Completed:Connect(function()
+    Notification:Destroy()
+end)
+
+print("✅ Nexus Hub Mobile carregado com sucesso!")
+print("📱 Toque no botão ☰ para abrir o menu")
