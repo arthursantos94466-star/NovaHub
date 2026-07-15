@@ -45,7 +45,7 @@ if gethui then ScreenGui.Parent = gethui() end
 -- ==========================================
 local ToggleButton = Instance.new("ImageButton")
 ToggleButton.Name = "ToggleButton"
-ToggleButton.Size = UDim2.new(0, 85, 0, 85)
+ToggleButton.Size = UDim2.new(0, 55, 0, 55)
 ToggleButton.Position = UDim2.new(0, 12, 0.85, -42)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 ToggleButton.BackgroundTransparency = 0.15
