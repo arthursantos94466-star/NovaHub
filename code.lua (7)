@@ -225,7 +225,7 @@ local function CreateSection(title)
     
     local C = Instance.new("Frame")
     C.BackgroundTransparency = 1
-    C.Size = UDim2.new(1, -24, 0, 38)
+    C.Size = UDim2.new(1, -10, 0, 25)
     C.Position = UDim2.new(0, 12, 0, 36)
     C.Parent = S
     
@@ -245,7 +245,7 @@ local function CreateToggle(parent, text, icon, defaultState, accentColor, callb
     local F = Instance.new("Frame")
     F.BackgroundColor3 = Color3.fromRGB(28, 28, 42)
     F.BorderSizePixel = 0
-    F.Size = UDim2.new(0, 148, 0, 50)
+    F.Size = UDim2.new(0, 90, 0, 40)
     F.Parent = parent
     
     local FC = Instance.new("UICorner")
