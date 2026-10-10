@@ -54,7 +54,7 @@ local ExtraTab = Window:CreateTab("Extra",4483362458)
 CombatTab:CreateButton({
     Name = "Aimbot (External)", -- Corrigido: Removido o ponto e vírgula daqui
     Callback = function()
-        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-universal-no-key-94177"))()
+        loadstring(game:HttpGet("https://scriptblox.com/raw/Universal-Script-Aimbot-universal-111551"))()
     end
 })
 
