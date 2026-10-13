@@ -31,7 +31,7 @@ bypassAntiCheat()
 LocalPlayer.CharacterAdded:Connect(bypassAntiCheat)
 
 -- [[ CARREGAMENTO DA RAYFIELD LIBRARY ]]
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu'))()
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/gen2'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Orvex hub - Beta",
