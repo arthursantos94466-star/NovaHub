@@ -1,0 +1,320 @@
+-- [[ CONFIGURACAO E BYPASS DO ANTI-CHEAT CLIENT ]]
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Destruir interfaces antigas da Rayfield Gen2 se ja tiverem sido injetadas antes
+if game:GetService("CoreGui"):FindFirstChild("Rayfield") then
+    game:GetService("CoreGui").Rayfield:Destroy()
+end
+
+-- VARIAVEIS DE CONTROLE E CONFIGURACAO
+local loopFarmApoio = false
+local defaultSpeed = 16
+local currentCustomSpeed = 16
+local intervaloNpcDelay = 0.15
+local RemotePedir = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("ApoioPolitico"):WaitForChild("Pedir")
+
+-- Funcao para burlar o monitoramento do Anti-Cheat local no Humanoid
+local function bypassAntiCheat()
+    task.spawn(function()
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local humanoid = character:WaitForChild("Humanoid")
+        
+        if getconnections then  
+            for _, connection in ipairs(getconnections(humanoid:GetPropertyChangedSignal("WalkSpeed"))) do  
+                connection:Disable()  
+            end  
+        end  
+    end)
+end
+bypassAntiCheat()
+LocalPlayer.CharacterAdded:Connect(bypassAntiCheat)
+
+-- Loop de renderizacao para forcar NoClip e gravidade zero durante o farm subterraneo
+RunService.Stepped:Connect(function()
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid and humanoid.WalkSpeed ~= currentCustomSpeed then
+            humanoid.WalkSpeed = currentCustomSpeed
+        end
+        
+        if loopFarmApoio then  
+            local root = character:FindFirstChild("HumanoidRootPart")  
+            if root then  
+                root.Velocity = Vector3.new(0, 0, 0)  
+                humanoid.PlatformStand = true 
+            end  
+              
+            for _, parte in ipairs(character:GetChildren()) do  
+                if parte:IsA("BasePart") then  
+                    parte.CanCollide = false  
+                end  
+            end  
+        else  
+            local root = character:FindFirstChild("HumanoidRootPart")  
+            if root and humanoid.PlatformStand == true then  
+                humanoid.PlatformStand = false  
+            end  
+        end  
+    end
+end)
+
+-- [[ CARREGAMENTO DA RAYFIELD GEN2 LIBRARY ]]
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Orvex - Em Beta",
+    Subtitle = "Otimizado para Mobile",
+    Theme = "default"
+})
+
+-- [[ FUNCOES AUXILIARES DE INTERACAO ]]
+local function dispararPrompt(prompt)
+    if prompt and prompt:IsA("ProximityPrompt") then
+        if fireproximityprompt then
+            fireproximityprompt(prompt)
+        else
+            prompt:InputHoldBegin()
+            task.wait(prompt.HoldDuration + 0.05)
+            prompt:InputHoldEnd()
+        end
+    end
+end
+
+-- Teleporte Subterraneo Forcado via PivotTo
+local function teleportarAbaixoDeForcado(objeto)
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    if character and objeto:IsA("BasePart") then
+        local alvoCFrame = objeto.CFrame * CFrame.new(0, -5.5, 0)
+        character:PivotTo(alvoCFrame)
+        task.wait(0.05)
+    end
+end
+
+local function teleportarPara(objeto)
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    if character and objeto:IsA("BasePart") then
+        character:PivotTo(objeto.CFrame)
+        task.wait(0.05)
+    end
+end
+
+-- Loop de Farm de Apoio Continuo (Player/Palco)
+local function gerenciarFarmApoio(estado)
+    loopFarmApoio = estado
+    if not loopFarmApoio then return end
+
+    local localTeleporte = nil  
+    local manifestacao = Workspace:FindFirstChild("Manifestacao")  
+    if manifestacao then  
+        local palco = manifestacao:FindFirstChild("PalcoManifestacao")  
+        if palco then  
+            local pulpito = palco:FindFirstChild("Pulpito")  
+            if pulpito then  
+                localTeleporte = pulpito:FindFirstChild("CorpoPulpito")  
+            end  
+        end  
+    end  
+          
+    local localPrompt = nil  
+    local pontos = Workspace:FindFirstChild("PontosInteracao")  
+    if pontos then  
+        local declaracao = pontos:FindFirstChild("ManifestacaoDeclararApoio")  
+        if declaracao then  
+            localPrompt = declaracao:FindFirstChild("ManifestacaoPrompt")  
+        end  
+    end  
+          
+    if localTeleporte and localPrompt then  
+        task.spawn(function()  
+            while loopFarmApoio do  
+                teleportarAbaixoDeForcado(localTeleporte)  
+                if not loopFarmApoio then break end  
+                dispararPrompt(localPrompt)  
+                task.wait(0.1)  
+            end  
+        end)  
+    end
+end
+
+-- CORRIGIDO: Rota de Farm dos NPCs com Espera de Física para Ativação do Prompt
+local function iniciarFarmNPCs()
+    local populacaoNPC = Workspace:FindFirstChild("PopulacaoNPC")
+    if not populacaoNPC then return end
+
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()  
+      
+    if character then  
+        for _, npc in ipairs(populacaoNPC:GetChildren()) do
+            local npcRoot = npc:FindFirstChild("HumanoidRootPart")  
+            if npcRoot then
+                -- 1. Teleporta exatamente para o ponto físico do NPC
+                character:PivotTo(npcRoot.CFrame)
+                
+                -- 2. Pausa crucial para o client/servidor registrar a proximidade
+                task.wait(0.1)
+                
+                -- 3. Busca o ProximityPrompt específico de Conversa enviado por você
+                local promptNpc = npcRoot:FindFirstChild("ConversarPrompt")
+                if promptNpc then
+                    dispararPrompt(promptNpc)
+                end
+                
+                -- 4. Intervalo configurado pelo slider da interface antes de pular para o próximo
+                task.wait(intervaloNpcDelay)
+            end
+        end
+    end
+end
+
+-- Rota automatica de pedido de apoio aos jogadores online
+local function executarAutoPedirApoio()
+    local listaJogadores = Players:GetPlayers()
+    for i = 1, #listaJogadores do
+        local playerAlvo = listaJogadores[i]
+        
+        if playerAlvo ~= LocalPlayer then
+            local targetChar = playerAlvo.Character
+            local targetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+            
+            if targetRoot and playerAlvo.UserId then
+                local myChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                
+                if myChar then
+                    local playerID = playerAlvo.UserId
+                    myChar:PivotTo(targetRoot.CFrame * CFrame.new(0, 0, -2))
+                    task.wait(0.2)
+                    
+                    local promptEncontrado = targetChar:FindFirstChild("ConversarPrompt", true) or 
+                                             targetRoot:FindFirstChildOfClass("ProximityPrompt") or 
+                                             targetChar:FindFirstChildOfClass("ProximityPrompt", true)
+                    
+                    if promptEncontrado and promptEncontrado:IsA("ProximityPrompt") then
+                        dispararPrompt(promptEncontrado)
+                    end
+                    
+                    pcall(function()
+                        RemotePedir:FireServer(playerID)
+                    end)
+                    
+                    task.wait(0.3)
+                end
+            end
+        end
+    end
+end
+
+-- [[ CONSTRUCAO DAS ABAS NA INTERFACE GEN2 ]]
+
+local TabFarm = Window:CreateTab({ Name = "Farm" })
+
+TabFarm:CreateToggle({
+    Name = "Farm Apoio (Npc)",
+    Value = false,
+    Callback = function(Value)
+        gerenciarFarmApoio(Value)
+        if Value then
+            Window:Notify({
+                Title = "Farm Status",
+                Content = "Farm Apoio Subterraneo Ativado!",
+                Duration = 2
+            })
+        end
+    end
+})
+
+TabFarm:CreateButton({
+    Name = "Teleporte Npc",
+    Callback = function()
+        Window:Notify({
+            Title = "Farm NPCs",
+            Content = "Iniciando rota de conversas...",
+            Duration = 2
+        })
+        iniciarFarmNPCs()
+    end
+})
+
+TabFarm:CreateButton({
+    Name = "Pedir Apoio (All Players)",
+    Callback = function()
+        Window:Notify({
+            Title = "Apoio Coletivo",
+            Content = "Solicitando apoio de todos os jogadores...",
+            Duration = 2
+        })
+        executarAutoPedirApoio()
+    end
+})
+
+TabFarm:CreateSlider({
+    Name = "Vel. Teleporte",
+    Range = {5, 100}, 
+    Increment = 5,
+    Suffix = "ms",
+    Value = 15, 
+    Callback = function(Value)
+        intervaloNpcDelay = Value / 100
+    end
+})
+
+local TabTeleport = Window:CreateTab({ Name = "Teleporte" })
+
+TabTeleport:CreateButton({
+    Name = "EstudoDebate",
+    Callback = function()
+        local pontos = Workspace:FindFirstChild("PontosInteracao")
+        local ponto = pontos and pontos:FindFirstChild("EstudoDebate")
+        if ponto then
+            teleportarPara(ponto)
+            dispararPrompt(ponto:FindFirstChild("DebateEstudoPrompt"))
+        else
+            Window:Notify({ Title = "Erro", Content = "Area nao encontrada!", Duration = 3 })
+        end
+    end
+})
+
+TabTeleport:CreateButton({
+    Name = "MesaParlamentar",
+    Callback = function()
+        local mesa = Workspace:FindFirstChild("MesaParlamentar")
+        if mesa then
+            teleportarPara(mesa)
+            dispararPrompt(mesa:FindFirstChild("PropostaParlamentarPrompt"))
+        else
+            Window:Notify({ Title = "Erro", Content = "Area nao encontrada!", Duration = 3 })
+        end
+    end
+})
+TabTeleport:CreateButton({
+Name = "PontoCandidatura",
+Callback = function()
+local ponto = Workspace:FindFirstChild("PontoCandidatura")
+if ponto then
+teleportarPara(ponto)
+dispararPrompt(ponto:FindFirstChild("CandidaturaPrompt"))
+else
+Window:Notify({ Title = "Erro", Content = "Area nao encontrada!", Duration = 3 })
+end
+end
+})
+local TabSettings = Window:CreateTab({ Name = "Ajustes" })
+TabSettings:CreateSlider({
+Name = "Vel. Player",
+Range = {16, 150},
+Increment = 1,
+Suffix = "Studs",
+Value = 16,
+Callback = function(Value)
+currentCustomSpeed = Value
+local character = LocalPlayer.Character
+local humanoid = character and character:FindFirstChild("Humanoid")
+if humanoid then
+humanoid.WalkSpeed = Value
+end
+end
+})
