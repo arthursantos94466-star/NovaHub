@@ -304,7 +304,7 @@ end
 })
 local TabSettings = Window:CreateTab({ Name = "Ajustes" })
 TabSettings:CreateSlider({
-Name = "Vel. Player",
+Name = "Vel. Player" (Não use),
 Range = {16, 150},
 Increment = 1,
 Suffix = "Studs",
