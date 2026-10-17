@@ -409,7 +409,7 @@ entradaMensagem.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- CRIAR NPC CORRIGIDO (FIM DO DESMEMBRAMENTO NO AR)
+-- CRIAR NPC COMPATÍVEL COM ROUPAS MODERNAS E AVATARES ATUALIZADOS
 criarNPCBotao.MouseButton1Click:Connect(function()
     local texto = entradaNick.Text:match("^%s*(.-)%s*$")
 
@@ -457,37 +457,37 @@ criarNPCBotao.MouseButton1Click:Connect(function()
         end)
         nomeOriginal = okNome and nome or texto
 
-        -- 2. MÉTODO SEGURO: Sempre gera um corpo R15 novo da API para evitar juntas quebradas no ar
+        -- 2. MÉTODO SEGURO: Cria o esqueleto base de fábrica
         local ok, resultado = pcall(function()
             local descricao = Players:GetHumanoidDescriptionFromUserIdAsync(userId)
-            
-            -- Gera a estrutura R15 nativa e limpa (todas as partes conectadas de fábrica)
-            local modeloGerado = Players:CreateHumanoidModelFromDescriptionAsync(descricao, Enum.HumanoidRigType.R15)
-            
-            -- ANCORAGEM ANTECIPADA: Trava todas as partes juntas antes de ligar a física da Workspace
-            for _, objeto in ipairs(modeloGerado:GetDescendants()) do
-                if objeto:IsA("BasePart") then
-                    objeto.Anchored = true
-                    objeto.CanCollide = false
-                end
-            end
-            
-            return modeloGerado
+            -- Gera a estrutura original limpa com as juntas perfeitamente conectadas
+            return Players:CreateHumanoidModelFromDescriptionAsync(descricao, Enum.HumanoidRigType.R15)
         end)
 
         if not ok or not resultado then
-            status.Text = "Falha ao gerar avatar com segurança."
-            warn("Erro ao gerar avatar pelas APIs:", resultado)
+            status.Text = "Falha ao gerar esqueleto do avatar."
+            warn("Erro nas APIs de aparacao do Roblox:", resultado)
             return
         end
 
         local npc = resultado
         npc.Name = "NPCVisualPolitico"
+        
+        -- Garante que o corpo herda propriedades físicas necessárias para o carregamento inicial
+        local humanoid = npc:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.AutomaticScalingEnabled = true
+        end
 
-        -- Coloca na Workspace de forma segura (já ancorado)
+        -- Move o NPC para uma posição temporária segura na Workspace para que ele carregue as roupas 3D
         npc.Parent = Workspace
+        npc:PivotTo(CFrame.new(0, 9999, 0)) -- Joga temporariamente lá no alto para carregar oculto
 
-        -- 3. TELEPORTE NO AR: Pega a posição exata do SEU personagem local
+        -- AGUARDA O SUCESSO DE MONTAGEM (Evita roupas e skins bugadas/incompletas)
+        status.Text = "Renderizando texturas..."
+        task.wait(0.4) -- Pequena pausa necessária para o motor carregar roupas de camadas e acessórios pesados
+
+        -- 3. TELEPORTE EXATO: Pega a posição do SEU personagem local
         local meuPersonagem = jogador.Character or jogador.CharacterAdded:Wait()
         local minhaRaiz = meuPersonagem and meuPersonagem:FindFirstChild("HumanoidRootPart")
 
@@ -497,19 +497,22 @@ criarNPCBotao.MouseButton1Click:Connect(function()
             return
         end
 
-        -- Posiciona o clone perfeitamente grudado e alinhado a você no ar
+        -- Transfere o clone totalmente vestido e montado para o seu lado (voando ou no chão)
         npc:PivotTo(minhaRaiz.CFrame * CFrame.new(4, 0, -6))
 
-        -- 4. Limpeza final de scripts redundantes
+        -- 4. CONGELAMENTO PÓS-CARREGAMENTO: Agora sim podemos ancorar com segurança
         for _, objeto in ipairs(npc:GetDescendants()) do
-            if objeto:IsA("Script") or objeto:IsA("LocalScript") or objeto:IsA("Animate") then
+            if objeto:IsA("BasePart") then
+                objeto.Anchored = true
+                objeto.CanCollide = false
+            elseif objeto:IsA("Script") or objeto:IsA("LocalScript") or objeto:IsA("Animate") then
                 objeto:Destroy()
             end
         end
 
         ocultarNomePadrao(npc)
 
-        -- Substitui o NPC antigo se houver
+        -- Substitui o NPC anterior se houver
         if npcSpawnado and npcSpawnado.Parent then
             npcSpawnado:Destroy()
         end
