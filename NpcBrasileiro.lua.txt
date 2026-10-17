@@ -409,7 +409,7 @@ entradaMensagem.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- CRIAR NPC
+-- CRIAR NPC CORRIGIDO E OTIMIZADO
 criarNPCBotao.MouseButton1Click:Connect(function()
     local texto = entradaNick.Text:match("^%s*(.-)%s*$")
 
@@ -422,40 +422,70 @@ criarNPCBotao.MouseButton1Click:Connect(function()
 
     task.spawn(function()
         local userId
+        local jogadorAlvo = nil
 
+        -- Descobre o UserId e verifica se o jogador está no servidor atual
         if tonumber(texto) then
             userId = tonumber(texto)
+            jogadorAlvo = Players:GetPlayerByUserId(userId)
         else
-            local ok, resultado = pcall(function()
-                return Players:GetUserIdFromNameAsync(texto)
-            end)
-
-            if not ok then
-                status.Text = "Nick nao encontrado."
-                warn("Erro ao buscar usuario:", resultado)
-                return
+            -- Procura o jogador pelo nick no servidor antes de buscar na API externa
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p.Name:lower() == texto:lower() or p.DisplayName:lower() == texto:lower() then
+                    jogadorAlvo = p
+                    userId = p.UserId
+                    break
+                end
             end
 
-            userId = resultado
+            if not userId then
+                local ok, resultado = pcall(function()
+                    return Players:GetUserIdFromNameAsync(texto)
+                end)
+
+                if not ok then
+                    status.Text = "Nick nao encontrado."
+                    warn("Erro ao buscar usuario:", resultado)
+                    return
+                end
+                userId = resultado
+            end
         end
 
-        local ok, resultado = pcall(function()
-            local descricao =
-                Players:GetHumanoidDescriptionFromUserIdAsync(userId)
+        local npc = nil
 
-            return Players:CreateHumanoidModelFromDescriptionAsync(
-                descricao,
-                Enum.HumanoidRigType.R15
-            )
-        end)
-
-        if not ok or not resultado then
-            status.Text = "Falha ao carregar avatar."
-            warn("Erro ao criar avatar:", resultado)
-            return
+        -- MÉTODO 1: Clonagem Direta (Evita bugs com cabeças/corpos customizados se o player estiver no jogo)
+        if jogadorAlvo and jogadorAlvo.Character then
+            local charOriginal = jogadorAlvo.Character
+            charOriginal.Archivable = true -- Permite clonar personagens de jogadores locais
+            
+            local sucessoClone, resultadoClone = pcall(function()
+                return charOriginal:Clone()
+            end)
+            
+            if sucessoClone and resultadoClone then
+                npc = resultadoClone
+            end
         end
 
-        local npc = resultado
+        -- MÉTODO 2: Fallback oficial (Caso o jogador não esteja no servidor atual)
+        if not npc then
+            local ok, resultado = pcall(function()
+                local descricao = Players:GetHumanoidDescriptionFromUserIdAsync(userId)
+                
+                -- Criamos um Rig padrão limpo (R15)
+                local modeloBase = Players:CreateHumanoidModelFromDescriptionAsync(descricao, Enum.HumanoidRigType.R15)
+                return modeloBase
+            end)
+
+            if not ok or not resultado then
+                status.Text = "Falha ao carregar avatar."
+                warn("Erro ao criar avatar pelas APIs:", resultado)
+                return
+            end
+            npc = resultado
+        end
+
         npc.Name = "NPCVisualPolitico"
 
         local humanoid = npc:FindFirstChildOfClass("Humanoid")
@@ -467,16 +497,17 @@ criarNPCBotao.MouseButton1Click:Connect(function()
             return
         end
 
-        ocultarNomePadrao(npc)
-
+        -- Força o carregamento completo de roupas/texturas na Workspace
+        npc.Parent = Workspace
+        
+        -- Atualiza o nome oficial do jogador clonado
         local okNome, nome = pcall(function()
             return Players:GetNameFromUserIdAsync(userId)
         end)
         nomeOriginal = okNome and nome or texto
 
         local personagem = jogador.Character
-        local raizJogador = personagem
-            and personagem:FindFirstChild("HumanoidRootPart")
+        local raizJogador = personagem and personagem:FindFirstChild("HumanoidRootPart")
 
         if not raizJogador then
             npc:Destroy()
@@ -486,18 +517,17 @@ criarNPCBotao.MouseButton1Click:Connect(function()
 
         npc:PivotTo(raizJogador.CFrame * CFrame.new(4, 0, -6))
 
+        -- Limpa scripts do clone e ancora o corpo respeitando roupas modernas
         for _, objeto in ipairs(npc:GetDescendants()) do
             if objeto:IsA("BasePart") then
                 objeto.Anchored = true
                 objeto.CanCollide = false
-            elseif objeto:IsA("Script")
-                or objeto:IsA("LocalScript") then
+            elseif objeto:IsA("Script") or objeto:IsA("LocalScript") or objeto:IsA("Animate") then
                 objeto:Destroy()
             end
         end
 
         ocultarNomePadrao(npc)
-        npc.Parent = Workspace
 
         if npcSpawnado and npcSpawnado.Parent then
             npcSpawnado:Destroy()
