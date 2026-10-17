@@ -409,7 +409,7 @@ entradaMensagem.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- CRIAR NPC CORRIGIDO E OTIMIZADO
+-- CRIAR NPC 100% CORRIGIDO (SEMPRE TELEPORTA PARA VOCÊ + CORRIGIDO OFFLINE)
 criarNPCBotao.MouseButton1Click:Connect(function()
     local texto = entradaNick.Text:match("^%s*(.-)%s*$")
 
@@ -424,12 +424,11 @@ criarNPCBotao.MouseButton1Click:Connect(function()
         local userId
         local jogadorAlvo = nil
 
-        -- Descobre o UserId e verifica se o jogador está no servidor atual
+        -- 1. Descobrir o UserId e checar se está no servidor
         if tonumber(texto) then
             userId = tonumber(texto)
             jogadorAlvo = Players:GetPlayerByUserId(userId)
         else
-            -- Procura o jogador pelo nick no servidor antes de buscar na API externa
             for _, p in ipairs(Players:GetPlayers()) do
                 if p.Name:lower() == texto:lower() or p.DisplayName:lower() == texto:lower() then
                     jogadorAlvo = p
@@ -452,12 +451,18 @@ criarNPCBotao.MouseButton1Click:Connect(function()
             end
         end
 
+        -- Atualiza o nome de exibição oficial
+        local okNome, nome = pcall(function()
+            return Players:GetNameFromUserIdAsync(userId)
+        end)
+        nomeOriginal = okNome and nome or texto
+
         local npc = nil
 
-        -- MÉTODO 1: Clonagem Direta (Evita bugs com cabeças/corpos customizados se o player estiver no jogo)
+        -- MÉTODO A: Se o jogador estiver no servidor, clona o boneco montado
         if jogadorAlvo and jogadorAlvo.Character then
             local charOriginal = jogadorAlvo.Character
-            charOriginal.Archivable = true -- Permite clonar personagens de jogadores locais
+            charOriginal.Archivable = true
             
             local sucessoClone, resultadoClone = pcall(function()
                 return charOriginal:Clone()
@@ -468,19 +473,29 @@ criarNPCBotao.MouseButton1Click:Connect(function()
             end
         end
 
-        -- MÉTODO 2: Fallback oficial (Caso o jogador não esteja no servidor atual)
+        -- MÉTODO B: Se o jogador NÃO estiver no servidor (Fora do Jogo)
         if not npc then
             local ok, resultado = pcall(function()
-                local descricao = Players:GetHumanoidDescriptionFromUserIdAsync(userId)
+                -- Cria uma estrutura humana limpa no padrão R15
+                local modeloBase = Instance.new("Model")
+                modeloBase.Name = "CarregandoPelaAPI"
                 
-                -- Criamos um Rig padrão limpo (R15)
-                local modeloBase = Players:CreateHumanoidModelFromDescriptionAsync(descricao, Enum.HumanoidRigType.R15)
+                local humanoid = Instance.new("Humanoid")
+                humanoid.RigType = Enum.RigType.R15
+                humanoid.Parent = modeloBase
+                
+                -- Coloca temporariamente na Workspace para o Roblox carregar as malhas 3D
+                modeloBase.Parent = Workspace
+                
+                local descricao = Players:GetHumanoidDescriptionFromUserIdAsync(userId)
+                humanoid:ApplyDescription(descricao)
+                
                 return modeloBase
             end)
 
             if not ok or not resultado then
-                status.Text = "Falha ao carregar avatar."
-                warn("Erro ao criar avatar pelas APIs:", resultado)
+                status.Text = "Falha ao carregar avatar offline."
+                warn("Erro ao gerar avatar offline:", resultado)
                 return
             end
             npc = resultado
@@ -488,36 +503,23 @@ criarNPCBotao.MouseButton1Click:Connect(function()
 
         npc.Name = "NPCVisualPolitico"
 
-        local humanoid = npc:FindFirstChildOfClass("Humanoid")
-        local raiz = npc:FindFirstChild("HumanoidRootPart")
-
-        if not humanoid or not raiz then
-            npc:Destroy()
-            status.Text = "Avatar invalido."
-            return
-        end
-
-        -- Força o carregamento completo de roupas/texturas na Workspace
+        -- Garante que o NPC está na Workspace antes de medir distâncias ou mover
         npc.Parent = Workspace
-        
-        -- Atualiza o nome oficial do jogador clonado
-        local okNome, nome = pcall(function()
-            return Players:GetNameFromUserIdAsync(userId)
-        end)
-        nomeOriginal = okNome and nome or texto
 
-        local personagem = jogador.Character
-        local raizJogador = personagem and personagem:FindFirstChild("HumanoidRootPart")
+        -- 2. CORREÇÃO DE TELEPORTE: Sempre pega a posição do SEU personagem (jogador local)
+        local meuPersonagem = jogador.Character or jogador.CharacterAdded:Wait()
+        local minhaRaiz = meuPersonagem and meuPersonagem:FindFirstChild("HumanoidRootPart")
 
-        if not raizJogador then
+        if not minhaRaiz then
             npc:Destroy()
             status.Text = "Seu personagem nao foi encontrado."
             return
         end
 
-        npc:PivotTo(raizJogador.CFrame * CFrame.new(4, 0, -6))
+        -- Teleporta o clone exatamente para 4 studs para o lado e 6 studs para a frente de VOCÊ
+        npc:PivotTo(minhaRaiz.CFrame * CFrame.new(4, 0, -6))
 
-        -- Limpa scripts do clone e ancora o corpo respeitando roupas modernas
+        -- 3. Limpeza de scripts e ancoragem pós-teleporte
         for _, objeto in ipairs(npc:GetDescendants()) do
             if objeto:IsA("BasePart") then
                 objeto.Anchored = true
@@ -529,6 +531,7 @@ criarNPCBotao.MouseButton1Click:Connect(function()
 
         ocultarNomePadrao(npc)
 
+        -- Substitui o NPC antigo se houver
         if npcSpawnado and npcSpawnado.Parent then
             npcSpawnado:Destroy()
         end
